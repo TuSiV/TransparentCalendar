@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'" />
+  <title>透明日历</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="card" class="drag">
+    <header class="drag">
+      <div class="month-nav drag">
+        <button id="btnPrev" class="icon-btn no-drag" title="上一月">&#x2039;</button>
+        <span id="monthTitle" class="title"></span>
+        <button id="btnNext" class="icon-btn no-drag" title="下一月">&#x203A;</button>
+        <button id="btnToday" class="text-btn no-drag" title="回到今天">今</button>
+      </div>
+      <div class="header-actions no-drag">
+        <span id="authDot" class="dot" title="未连接 Outlook"></span>
+        <button id="btnSettings" class="icon-btn" title="设置">&#x2699;</button>
+        <button id="btnHide" class="icon-btn" title="隐藏到托盘">&#x2013;</button>
+      </div>
+    </header>
+
+    <div id="weekRow" class="week-row"></div>
+    <div id="grid" class="grid"></div>
+
+    <section id="eventPanel">
+      <div class="day-label-row">
+        <div id="dayLabel" class="day-label"></div>
+        <button id="btnAddEvent" class="text-btn no-drag" title="添加本地日程">+</button>
+      </div>
+      <ul id="eventList" class="event-list"></ul>
+      <div id="addEventBar" class="add-bar hidden">
+        <input id="addEventInput" type="text" placeholder="标题" />
+        <input id="addEventStart" type="datetime-local" />
+        <input id="addEventEnd" type="datetime-local" />
+        <button id="btnAddEventConfirm" class="text-btn">添加</button>
+        <button id="btnAddEventCancel" class="text-btn">取消</button>
+      </div>
+    </section>
+
+    <section id="todoPanel" class="todo-panel hidden">
+      <div class="todo-header no-drag">
+        <span id="todoLabel" class="day-label">待办任务</span>
+        <button id="btnToggleDone" class="text-btn done-toggle" title="显示/隐藏已完成">✔</button>
+        <button id="btnAddTodo" class="text-btn add-btn" title="添加任务">+</button>
+      </div>
+      <ul id="todoList" class="event-list"></ul>
+      <div id="addTodoBar" class="add-bar hidden">
+        <input id="todoInput" type="text" placeholder="任务标题" />
+        <input id="todoDueDate" type="date" />
+        <button id="btnAddTodoConfirm" class="text-btn">添加</button>
+        <button id="btnAddTodoCancel" class="text-btn">取消</button>
+      </div>
+    </section>
+
+    <footer class="footer no-drag">
+      <span id="statusText" class="status"></span>
+      <button id="btnRefresh" class="text-btn" title="刷新">&#x21bb;</button>
+    </footer>
+  </div>
+
+  <!-- 登录遮罩 -->
+  <div id="loginOverlay" class="overlay hidden">
+    <h3>连接 Outlook 日历</h3>
+    <p id="deviceMsg" class="device-msg hidden">
+      请在任意浏览器打开<br />
+      <a id="deviceUrl" class="link" href="#" title="点击复制"></a><br />
+      并输入代码：<b id="deviceCode"></b>
+    </p>
+    <p id="loginHint" class="hint">需要 Microsoft 账号（个人 / 工作 / 学校）</p>
+    <button id="btnLogin" class="primary-btn">登录 Microsoft 账户</button>
+    <p id="loginErr" class="err hidden"></p>
+  </div>
+
+  <!-- 设置遮罩 -->
+  <div id="settingsOverlay" class="overlay hidden">
+    <h3>设置</h3>
+    <label class="field">
+      <span>ICS 订阅链接（填写后无需登录）</span>
+      <input id="icsUrlInput" type="text" spellcheck="false" placeholder="https://outlook.live.com/owa/... 或 webcal://..." />
+    </label>
+    <label class="field">
+      <span>或 Azure Client ID（Graph 模式）</span>
+      <input id="clientIdInput" type="text" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000" />
+    </label>
+    <label class="field">
+      <span>不透明度 <b id="opacityVal"></b>%</span>
+      <input id="opacityInput" type="range" min="30" max="100" step="5" />
+    </label>
+    <label class="field">
+      <span>每周开始日</span>
+      <select id="weekStartSelect">
+        <option value="1">星期一</option>
+        <option value="0">星期日</option>
+      </select>
+    </label>
+    <button id="btnLogout" class="danger-btn">退出登录</button>
+    <div class="overlay-actions">
+      <button id="btnSettingsCancel" class="text-btn">取消</button>
+      <button id="btnSettingsSave" class="primary-btn">保存</button>
+    </div>
+    <p class="hint small">在 Outlook 网页版设置 → 日历 → 共享/发布 → 获取 ICS 订阅链接即可。Graph 模式需在 <a class="link" href="#" id="azurePortalLink" title="点击复制">portal.azure.com</a> 注册 Azure 应用。</p>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
