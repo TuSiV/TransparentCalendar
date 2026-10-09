@@ -6,6 +6,7 @@ const graph = require('./graph');
 const ics = require('./ics');
 const todo = require('./todo');
 const store = require('./store');
+const startup = require('./startup');
 
 let win = null;
 let tray = null;
@@ -148,9 +149,13 @@ app.on('window-all-closed', () => {
 
 /* ---------------- IPC ---------------- */
 
-ipcMain.handle('settings:get', () => loadSettings());
+ipcMain.handle('settings:get', () => ({ ...loadSettings(), ...startup.getStartupSettings() }));
 
-ipcMain.handle('settings:save', (_e, patch) => saveSettings(patch));
+ipcMain.handle('settings:save', (_e, patch) => {
+  if (Object.hasOwn(patch, 'startOnLogin')) startup.setStartupEnabled(patch.startOnLogin);
+  const saved = saveSettings(patch);
+  return { ...saved, ...startup.getStartupSettings() };
+});
 
 ipcMain.handle('win:hide', () => win && win.hide());
 
@@ -252,5 +257,6 @@ ipcMain.handle('local:event:update', (_e, id, patch) => store.updateLocalEvent(i
 
 ipcMain.handle('local:tasks', (_e, startISO, endISO) => store.getLocalTasks(startISO, endISO));
 ipcMain.handle('local:task:add', (_e, opts) => store.addLocalTask(opts));
+ipcMain.handle('local:task:update', (_e, id, patch) => store.updateLocalTask(id, patch));
 ipcMain.handle('local:task:complete', (_e, id) => store.completeLocalTask(id));
 ipcMain.handle('local:task:delete', (_e, id) => store.deleteLocalTask(id));

@@ -96,7 +96,9 @@
         <option value="0">星期日</option>
       </select>
     </label>
+    <label class="check-field"><input id="startOnLoginInput" type="checkbox" />开机时启动</label>
     <button id="btnLogout" class="danger-btn">退出登录</button>
+    <p id="settingsError" class="err hidden" role="alert"></p>
     <div class="overlay-actions">
       <button id="btnSettingsCancel" class="text-btn">取消</button>
       <button id="btnSettingsSave" class="primary-btn">保存</button>
@@ -104,6 +106,32 @@
     <p class="hint small">在 Outlook 网页版设置 → 日历 → 共享/发布 → 获取 ICS 订阅链接即可。Graph 模式需在 <a class="link" href="#" id="azurePortalLink" title="点击复制">portal.azure.com</a> 注册 Azure 应用。</p>
   </div>
 
+  <div id="detailOverlay" class="overlay detail-overlay hidden no-drag" role="dialog" aria-modal="true" aria-labelledby="detailHeading">
+    <h3 id="detailHeading">详情</h3>
+    <form id="detailForm">
+      <fieldset id="detailFields" disabled>
+        <label class="field"><span>标题</span><input id="detailSubject" type="text" required maxlength="500" /></label>
+        <div id="detailEventFields">
+          <label class="check-field"><input id="detailAllDay" type="checkbox" />全天</label>
+          <label class="field"><span>开始</span><input id="detailStart" type="datetime-local" required /></label>
+          <label class="field"><span id="detailEndLabel">结束</span><input id="detailEnd" type="datetime-local" required /></label>
+          <label class="field"><span>地点</span><input id="detailLocation" type="text" maxlength="500" /></label>
+        </div>
+        <div id="detailTaskFields">
+          <label class="field"><span>截止日期（留空表示无截止日）</span><input id="detailDue" type="date" /></label>
+          <label class="field"><span>优先级</span><select id="detailImportance"><option value="low">低</option><option value="normal">普通</option><option value="high">高</option></select></label>
+          <label class="field"><span>状态</span><select id="detailStatus"><option value="notStarted">未开始</option><option value="inProgress">进行中</option><option value="completed">已完成</option><option value="waitingOnOthers">等待他人</option><option value="deferred">已推迟</option></select></label>
+        </div>
+        <label class="field"><span>备注</span><textarea id="detailNotes" rows="3" maxlength="10000"></textarea></label>
+      </fieldset>
+      <p id="detailError" class="err hidden" role="alert"></p>
+      <div class="overlay-actions">
+        <button id="btnDetailClose" type="button" class="text-btn">关闭</button>
+        <button id="btnDetailEdit" type="button" class="primary-btn">编辑</button>
+        <button id="btnDetailSave" type="submit" class="primary-btn hidden">保存</button>
+      </div>
+    </form>
+  </div>
   <script src="renderer.js"></script>
 </body>
 </html>

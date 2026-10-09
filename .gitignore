@@ -4,3 +4,4 @@ dist/
 *.blockmap
 *.yml
 builder-debug.yml
+!.github/workflows/*.yml

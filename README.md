@@ -10,6 +10,8 @@ A transparent, always-on-top desktop calendar widget with Outlook integration.
 - 支持两种接入方式：ICS 订阅（简单）/ Microsoft Graph API（实时）/ Two sync modes: ICS subscription (simple) / Graph API (real-time)
 - 托盘常驻：显示/隐藏、鼠标穿透、退出 / System tray: show/hide, click-through, quit
 - 不透明度可调 / Adjustable opacity
+- 点击本地日程/任务查看详情、编辑并保存；支持备注、全天日程、任务优先级及状态
+- 设置页可开启或关闭 Windows 开机启动（安装版及便携版）
 - 本地事件与任务支持，无需账户 / Local event and task support, no account required
 - Microsoft Todo 集成（Graph 模式）/ Microsoft Todo integration (Graph mode)
 - 点击穿透模式，悬停智能检测 / Click-through mode with smart hover detection

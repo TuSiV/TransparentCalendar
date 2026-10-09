@@ -645,3 +645,26 @@ header {
   display: flex;
   gap: 2px;
 }
+
+/* 本地详情与编辑 */
+.detail-overlay { justify-content: flex-start; overflow-y: auto; z-index: 20; }
+#detailForm, #detailFields { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+#detailFields { border: 0; }
+#detailEventFields, #detailTaskFields { display: flex; flex-direction: column; gap: 10px; }
+#detailEventFields.hidden, #detailTaskFields.hidden { display: none; }
+.check-field { display: flex; align-items: center; gap: 8px; }
+.field textarea { padding: 8px 10px; border: 1px solid rgba(255,255,255,.15); border-radius: 8px; background: rgba(255,255,255,.07); color: #e8eaf0; font: inherit; resize: vertical; min-height: 66px; }
+.detail-overlay input, .detail-overlay textarea { user-select: text; width: 100%; min-width: 0; color-scheme: dark; }
+.check-field input { width: auto; }
+.detail-overlay :disabled { opacity: 1; -webkit-text-fill-color: #e8eaf0; }
+.detail-overlay .overlay-actions { margin-top: 10px; }
+.detail-overlay, textarea, fieldset { -webkit-app-region: no-drag; }
+.event:focus-visible { outline: 1px solid #7fa4ff; }
+.dots .event-dot, .dots .task-dot { width: 4px; height: 4px; border-radius: 50%; display: inline-block; }
+.dots .event-dot { background: #7fa4ff; }
+.dots .task-dot { background: #f5a623; }
+
+#settingsOverlay { justify-content: flex-start; overflow-y: auto; }
+
+.event .location { max-width: 65px; overflow: hidden; text-overflow: ellipsis; }
+.event .subj { min-width: 25px; }

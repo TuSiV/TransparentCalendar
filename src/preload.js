@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('api', {
   localEventUpdate: (id, patch) => ipcRenderer.invoke('local:event:update', id, patch),
   localTasks: (startISO, endISO) => ipcRenderer.invoke('local:tasks', startISO, endISO),
   localTaskAdd: (opts) => ipcRenderer.invoke('local:task:add', opts),
+  localTaskUpdate: (id, patch) => ipcRenderer.invoke('local:task:update', id, patch),
   localTaskComplete: (id) => ipcRenderer.invoke('local:task:complete', id),
   localTaskDelete: (id) => ipcRenderer.invoke('local:task:delete', id),
 

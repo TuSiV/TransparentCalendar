@@ -1,12 +1,14 @@
 {
   "name": "transparent-outlook-calendar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "桌面透明日历插件，接入 Outlook 日历",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-packager . TransparentCalendar --platform=win32 --arch=x64 --out=dist --overwrite --icon=assets/app.ico --ignore=\"node_modules/electron-packager|node_modules/electron-builder|node_modules/app-builder|\\\\.git|dist\"",
-    "dist": "electron-builder --win --x64"
+    "dist": "electron-builder --win --x64",
+    "test": "node --test test/*.test.js",
+    "test:electron": "electron test/electron-smoke.cjs"
   },
   "dependencies": {
     "@azure/msal-node": "^2.16.2",
@@ -33,11 +35,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
