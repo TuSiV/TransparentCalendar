@@ -55,7 +55,8 @@ app.whenReady().then(async () => {
   } finally {
     startup.setStartupEnabled(originalStartup);
     clearTimeout(timeout);
-    fs.rmSync(dir, { recursive: true, force: true });
+    // Chromium keeps profile files open on Windows until process exit.
+    // The isolated CI temporary directory is removed with the runner.
   }
   app.quit();
 }).catch(err => { console.error(err); clearTimeout(timeout); app.exit(1); });
