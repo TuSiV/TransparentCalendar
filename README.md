@@ -5,6 +5,8 @@ A transparent, always-on-top desktop calendar widget with Outlook integration.
 
 ## 功能 Features
 
+- 月／周视图切换：点击标题栏“周”缩减为当周七天，窗口同步缩小；点击“月”展开，重启记住视图。
+- 周视图支持上一周／下一周、“今”返回当周，以及周一／周日起始日。
 - 透明无边框置顶窗口，可拖动、位置记忆 / Transparent borderless window, draggable, remembers position
 - 月视图 + 日程打点，点击日期查看当日日程 / Monthly view with event dots, click a date to see that day's events
 - 支持两种接入方式：ICS 订阅（简单）/ Microsoft Graph API（实时）/ Two sync modes: ICS subscription (simple) / Graph API (real-time)

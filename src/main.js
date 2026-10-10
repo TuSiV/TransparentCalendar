@@ -7,6 +7,7 @@ const ics = require('./ics');
 const todo = require('./todo');
 const store = require('./store');
 const startup = require('./startup');
+const calendarView = require('./renderer/calendar-view');
 
 let win = null;
 let tray = null;
@@ -34,7 +35,7 @@ function createWindow() {
   const s = loadSettings();
   const { width: sw } = screen.getPrimaryDisplay().workAreaSize;
   const w = 340;
-  const h = 580;
+  const h = calendarView.heightForMode(s.calendarView);
   const x = Number.isInteger(s.x) ? s.x : sw - w - 40;
   const y = Number.isInteger(s.y) ? s.y : 40;
 
@@ -168,6 +169,20 @@ ipcMain.handle('win:setIgnoreMouseEvents', (_e, ignore) => {
 });
 
 ipcMain.handle('win:getClickThrough', () => clickThrough);
+
+ipcMain.handle('calendar:setView', (_e, mode) => {
+  if (mode !== 'week' && mode !== 'month') throw new Error('日历视图无效');
+  saveSettings({ calendarView: mode });
+  if (win && !win.isDestroyed()) {
+    const bounds = win.getBounds();
+    const workArea = screen.getDisplayMatching(bounds).workArea;
+    const height = calendarView.heightForMode(mode);
+    // Preserve the top edge when shrinking; keep the expanded window on screen.
+    const y = Math.max(workArea.y, Math.min(bounds.y, workArea.y + workArea.height - height));
+    win.setBounds({ ...bounds, y, height });
+  }
+  return { calendarView: mode };
+});
 
 ipcMain.handle('auth:login', async (e) => {
   const clientId = loadSettings().clientId;

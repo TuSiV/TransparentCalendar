@@ -17,6 +17,7 @@ const state = {
   todoLists: [],
   todoListId: '',
   weekStart: 1, // 0=周日, 1=周一
+  calendarView: 'month',
   showCompleted: false,
 };
 
@@ -47,21 +48,27 @@ function renderWeekRow() {
 function renderGrid() {
   const y = state.view.getFullYear();
   const m = state.view.getMonth();
-  $('monthTitle').textContent = `${y} 年 ${m + 1} 月`;
-
-  const first = new Date(y, m, 1);
-  // weekStart: 0=周日(startDay=0), 1=周一(startDay=1)
-  const firstDayOfWeek = first.getDay(); // 0=Sun,1=Mon,...6=Sat
-  const offset = (firstDayOfWeek - state.weekStart + 7) % 7;
-  const gridStart = new Date(y, m, 1 - offset);
+  const week = state.calendarView === 'week';
+  const range = CalendarView.gridRange(state.view, state.calendarView, state.weekStart);
+  const gridStart = range.start;
+  const title = week ? CalendarView.weekLabel(range.start, range.end) : `${y} 年 ${m + 1} 月`;
+  $('monthTitle').textContent = title;
+  $('monthTitle').title = title;
+  $('card').classList.toggle('compact', week);
+  $('btnViewMode').textContent = week ? '月' : '周';
+  $('btnViewMode').title = week ? '展开为整月' : '缩减为当周';
+  $('btnViewMode').setAttribute('aria-label', $('btnViewMode').title);
+  $('btnViewMode').setAttribute('aria-pressed', String(week));
+  $('btnPrev').title = week ? '上一周' : '上一月';
+  $('btnNext').title = week ? '下一周' : '下一月';
   const today = dateKey(new Date());
 
   let html = '';
-  for (let i = 0; i < 42; i++) {
+  for (let i = 0; i < range.count; i++) {
     const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i);
     const key = dateKey(d);
     const classes = ['day'];
-    if (d.getMonth() !== m) classes.push('dim');
+    if (!week && d.getMonth() !== m) classes.push('dim');
     if (key === today) classes.push('today');
     if (key === state.selectedKey) classes.push('sel');
 
@@ -338,17 +345,16 @@ async function handleAddTodo() {
 
 /* ---------------- 数据拉取 ---------------- */
 
+let loadSequence = 0;
 async function loadMonth() {
-  const y = state.view.getFullYear();
-  const m = state.view.getMonth();
-  const start = new Date(y, m, 1 - 7);
-  const end = new Date(y, m + 1, 7);
+  const sequence = ++loadSequence;
+  const { start, end } = CalendarView.gridRange(state.view, state.calendarView, state.weekStart);
   const startISO = start.toISOString();
   const endISO = end.toISOString();
 
-  // 重置
-  state.events = new Map();
-  state.tasks = new Map();
+  // Keep requests independent so stale results cannot overwrite a new view.
+  const nextEvents = new Map();
+  const nextTasks = new Map();
   const syncErrors = [];
 
   try {
@@ -358,8 +364,8 @@ async function loadMonth() {
       const events = await api.getEvents(startISO, endISO).catch((err) => { syncErrors.push('日历同步失败：' + err.message); return []; });
       for (const e of events) {
         const key = dateKey(new Date(e.start));
-        if (!state.events.has(key)) state.events.set(key, []);
-        state.events.get(key).push(e);
+        if (!nextEvents.has(key)) nextEvents.set(key, []);
+        nextEvents.get(key).push(e);
       }
     }
 
@@ -371,8 +377,8 @@ async function loadMonth() {
       const day = new Date(first.getFullYear(), first.getMonth(), first.getDate());
       while (dateKey(day) <= dateKey(last)) {
         const key = dateKey(day);
-        if (!state.events.has(key)) state.events.set(key, []);
-        state.events.get(key).push(e);
+        if (!nextEvents.has(key)) nextEvents.set(key, []);
+        nextEvents.get(key).push(e);
         day.setDate(day.getDate() + 1);
       }
     }
@@ -383,14 +389,14 @@ async function loadMonth() {
       for (const t of tasks) {
         if (!t.dueDateTime) {
           const key = dateKey(new Date());
-          if (!state.tasks.has(key)) state.tasks.set(key, []);
-          state.tasks.get(key).push(t);
+          if (!nextTasks.has(key)) nextTasks.set(key, []);
+          nextTasks.get(key).push(t);
           continue;
         }
         const dt = new Date(t.dueDateTime.dateTime + 'Z');
         const key = dateKey(dt);
-        if (!state.tasks.has(key)) state.tasks.set(key, []);
-        state.tasks.get(key).push(t);
+        if (!nextTasks.has(key)) nextTasks.set(key, []);
+        nextTasks.get(key).push(t);
       }
     }
 
@@ -399,18 +405,22 @@ async function loadMonth() {
     for (const t of localTasks) {
       if (!t.dueDateTime) {
         const key = dateKey(new Date());
-        if (!state.tasks.has(key)) state.tasks.set(key, []);
-        state.tasks.get(key).push(t);
+        if (!nextTasks.has(key)) nextTasks.set(key, []);
+        nextTasks.get(key).push(t);
         continue;
       }
       const dt = new Date(t.dueDateTime);
       const key = dateKey(dt);
-      if (!state.tasks.has(key)) state.tasks.set(key, []);
-      state.tasks.get(key).push(t);
+      if (!nextTasks.has(key)) nextTasks.set(key, []);
+      nextTasks.get(key).push(t);
     }
 
+    if (sequence !== loadSequence) return;
+    state.events = nextEvents;
+    state.tasks = nextTasks;
     setStatus(syncErrors.length ? '本地数据已加载；' + syncErrors.join('；') : state.authed ? `已同步 · ${new Date().toLocaleTimeString('zh-CN')}` : '本地模式');
   } catch (err) {
+    if (sequence !== loadSequence) return;
     setStatus('同步失败：' + err.message.replace('Error invoking remote method', '').slice(0, 60));
     if (/未登录|token|401|403/i.test(err.message)) await refreshAuth();
   }
@@ -493,6 +503,7 @@ async function setupSettings() {
   $('opacityVal').textContent = $('opacityInput').value;
   $('weekStartSelect').value = saved.weekStart ?? 1;
   state.weekStart = Number(saved.weekStart ?? 1);
+  state.calendarView = CalendarView.normalizeMode(saved.calendarView);
 
   $('btnSettings').addEventListener('click', () => {
     $('settingsOverlay').classList.remove('hidden');
@@ -733,8 +744,8 @@ async function saveLocalDetail(e) {
     const saved = detail.kind === 'event' ? await api.localEventUpdate(detail.id, patch) : await api.localTaskUpdate(detail.id, patch);
     if (!saved) throw new Error('记录已被删除，请关闭详情后刷新');
     state.selectedKey = targetKey;
-    const [y, m] = targetKey.split('-').map(Number);
-    state.view = new Date(y, m - 1, 1);
+    const [y, m, d] = targetKey.split('-').map(Number);
+    state.view = new Date(y, m - 1, state.calendarView === 'week' ? d : 1);
     detail.saving = false;
     closeLocalDetail();
     await loadMonth();
@@ -774,14 +785,34 @@ function setupLocalDetail() {
 /* ---------------- 导航 ---------------- */
 
 function setupNav() {
+  $('btnViewMode').addEventListener('click', async () => {
+    const mode = state.calendarView === 'week' ? 'month' : 'week';
+    $('btnViewMode').disabled = true;
+    try {
+      await api.setCalendarView(mode);
+      state.calendarView = mode;
+      if (mode === 'week') {
+        state.view = new Date();
+        state.selectedKey = dateKey(state.view);
+      }
+      renderGrid();
+      await loadMonth();
+    } catch (err) {
+      setStatus('切换失败：' + err.message);
+    } finally {
+      $('btnViewMode').disabled = false;
+    }
+  });
   $('btnPrev').addEventListener('click', () => {
-    state.view = new Date(state.view.getFullYear(), state.view.getMonth() - 1, 1);
+    state.view = CalendarView.move(state.view, state.calendarView, -1);
+    state.selectedKey = dateKey(state.view);
     renderGrid();
     renderEvents();
     loadMonth();
   });
   $('btnNext').addEventListener('click', () => {
-    state.view = new Date(state.view.getFullYear(), state.view.getMonth() + 1, 1);
+    state.view = CalendarView.move(state.view, state.calendarView, 1);
+    state.selectedKey = dateKey(state.view);
     renderGrid();
     renderEvents();
     loadMonth();

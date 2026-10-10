@@ -668,3 +668,14 @@ header {
 
 .event .location { max-width: 65px; overflow: hidden; text-overflow: ellipsis; }
 .event .subj { min-width: 25px; }
+
+/* Compact week mode: remove the five unused date rows and keep lists usable. */
+.month-nav { min-width: 0; }
+.header-actions { flex-shrink: 0; }
+.title { min-width: 0; max-width: 125px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#btnViewMode { padding: 3px 5px; }
+#card.compact { overflow-y: auto; }
+.compact .title { font-size: 12px; }
+.compact .event-list { max-height: 100px; }
+.compact #eventPanel, .compact .todo-panel { min-height: 0; flex-shrink: 0; }
+.compact .footer { flex-shrink: 0; }

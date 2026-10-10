@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   logout: () => ipcRenderer.invoke('auth:logout'),
   getStatus: () => ipcRenderer.invoke('auth:status'),
   getEvents: (startISO, endISO) => ipcRenderer.invoke('calendar:getEvents', startISO, endISO),
+  setCalendarView: (mode) => ipcRenderer.invoke('calendar:setView', mode),
 
   todoLists: () => ipcRenderer.invoke('todo:lists'),
   todoTasks: (listId, dateISO) => ipcRenderer.invoke('todo:tasks', listId, dateISO),
