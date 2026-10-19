@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const assert = require("node:assert/strict");
+const { execFileSync } = require('node:child_process');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "calendar-electron-"));
 app.setPath("userData", dir);
 fs.writeFileSync(
@@ -252,6 +253,16 @@ app
           const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
           return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
         })()`);
+        // Native forwarded mouse events use the OS cursor. Keep it aligned with
+        // injected input so popup focus/leave events cannot overwrite its point.
+        if (process.platform === 'win32') {
+          const content = win.getContentBounds();
+          const cursor = screen.dipToScreenPoint({ x: content.x + point.x, y: content.y + point.y });
+          execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+            'Add-Type -TypeDefinition \'using System.Runtime.InteropServices; public static class CalendarTestMouse { [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y); }\'; ' +
+            `[CalendarTestMouse]::SetCursorPos(${cursor.x}, ${cursor.y}) | Out-Null`,
+          ], { stdio: 'pipe', timeout: 10000, windowsHide: true });
+        }
         win.webContents.sendInputEvent({ type: "mouseMove", ...point });
         await waitFor(() => nativeMouseCalls.at(-1) === !interactive, selector);
         assert.equal(
