@@ -41,7 +41,7 @@ Packages are available for **Windows x64**. Use the system tray to reopen a hidd
 ## Quick start
 
 1. **Place it.** Drag the empty header area to move the window; drag an edge or corner to resize it.
-2. **Add a plan.** Select a date, then click `+` in the event or task section. Click a local record to view its details and edit it.
+2. **Add a plan.** Select a date, then click `+` in the event or task section to open a separate window. Click an existing record to view its details; local records can be edited there.
 3. **Make it yours.** Open the gear button to adjust the theme, font size and background opacity in a separate settings window.
 
 | Action | Where to find it |
@@ -53,6 +53,8 @@ Packages are available for **Windows x64**. Use the system tray to reopen a hidd
 | Restore interaction after enabling click-through | Turn it off in the tray, or press **Ctrl + Alt + C** |
 
 With click-through enabled, **empty areas pass clicks to the desktop while dates, buttons, events, tasks, editing panels and resize grips remain interactive**. Change dates or add plans without disabling the mode. The recovery shortcut is configurable; the settings window remains interactive.
+
+Creation, details and editing use separate, opaque, resizable windows. They stay interactive regardless of the calendar's transparency or click-through setting. Saving refreshes the calendar and closes the popup. Closing unsaved changes offers Save, Discard and Cancel. Use **Ctrl + S** to save or **Esc** to close. External calendars and tasks remain read-only in the details window.
 
 ## Calendar connections
 

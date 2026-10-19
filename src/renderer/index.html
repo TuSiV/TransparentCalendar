@@ -61,13 +61,6 @@
             </button>
           </div>
           <ul id="eventList" class="event-list"></ul>
-          <div id="addEventBar" class="add-bar hidden">
-            <input id="addEventInput" type="text" placeholder="标题" />
-            <input id="addEventStart" type="datetime-local" />
-            <input id="addEventEnd" type="datetime-local" />
-            <button id="btnAddEventConfirm" class="text-btn">添加</button>
-            <button id="btnAddEventCancel" class="text-btn">取消</button>
-          </div>
         </section>
 
         <section id="todoPanel" class="todo-panel hidden">
@@ -85,12 +78,6 @@
             </button>
           </div>
           <ul id="todoList" class="event-list"></ul>
-          <div id="addTodoBar" class="add-bar hidden">
-            <input id="todoInput" type="text" placeholder="任务标题" />
-            <input id="todoDueDate" type="date" />
-            <button id="btnAddTodoConfirm" class="text-btn">添加</button>
-            <button id="btnAddTodoCancel" class="text-btn">取消</button>
-          </div>
         </section>
       </div>
       <footer class="footer no-drag">
@@ -99,83 +86,6 @@
       </footer>
     </div>
 
-    <div
-      id="detailOverlay"
-      class="overlay detail-overlay hidden no-drag"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="detailHeading"
-    >
-      <h3 id="detailHeading">详情</h3>
-      <form id="detailForm">
-        <fieldset id="detailFields" disabled>
-          <label class="field"
-            ><span>标题</span
-            ><input id="detailSubject" type="text" required maxlength="500"
-          /></label>
-          <div id="detailEventFields">
-            <label class="check-field"
-              ><input id="detailAllDay" type="checkbox" />全天</label
-            >
-            <label class="field"
-              ><span>开始</span
-              ><input id="detailStart" type="datetime-local" required
-            /></label>
-            <label class="field"
-              ><span id="detailEndLabel">结束</span
-              ><input id="detailEnd" type="datetime-local" required
-            /></label>
-            <label class="field"
-              ><span>地点</span
-              ><input id="detailLocation" type="text" maxlength="500"
-            /></label>
-          </div>
-          <div id="detailTaskFields">
-            <label class="field"
-              ><span>截止日期（留空表示无截止日）</span
-              ><input id="detailDue" type="date"
-            /></label>
-            <label class="field"
-              ><span>优先级</span
-              ><select id="detailImportance">
-                <option value="low">低</option>
-                <option value="normal">普通</option>
-                <option value="high">高</option>
-              </select></label
-            >
-            <label class="field"
-              ><span>状态</span
-              ><select id="detailStatus">
-                <option value="notStarted">未开始</option>
-                <option value="inProgress">进行中</option>
-                <option value="completed">已完成</option>
-                <option value="waitingOnOthers">等待他人</option>
-                <option value="deferred">已推迟</option>
-              </select></label
-            >
-          </div>
-          <label class="field"
-            ><span>备注</span
-            ><textarea id="detailNotes" rows="3" maxlength="10000"></textarea>
-          </label>
-        </fieldset>
-        <p id="detailError" class="err hidden" role="alert"></p>
-        <div class="overlay-actions">
-          <button id="btnDetailExternal" type="button" class="text-btn hidden">
-            打开原日历
-          </button>
-          <button id="btnDetailClose" type="button" class="text-btn">
-            关闭
-          </button>
-          <button id="btnDetailEdit" type="button" class="primary-btn">
-            编辑
-          </button>
-          <button id="btnDetailSave" type="submit" class="primary-btn hidden">
-            保存
-          </button>
-        </div>
-      </form>
-    </div>
     <div id="resizeGrips" aria-hidden="true"></div>
     <script src="appearance.js"></script>
     <script src="calendar-view.js"></script>

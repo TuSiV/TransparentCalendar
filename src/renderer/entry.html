@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'"><title>记录详情</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="entry.css"></head>
+<body><main><h1 id="detailHeading">记录详情</h1><p id="entrySource" class="entry-source"></p>
+      <form id="detailForm">
+        <fieldset id="detailFields" disabled>
+          <label class="field"
+            ><span>标题</span
+            ><input id="detailSubject" type="text" required maxlength="500"
+          /></label>
+          <div id="detailEventFields">
+            <label class="check-field"
+              ><input id="detailAllDay" type="checkbox" />全天</label
+            >
+            <label class="field"
+              ><span>开始</span
+              ><input id="detailStart" type="datetime-local" required
+            /></label>
+            <label class="field"
+              ><span id="detailEndLabel">结束</span
+              ><input id="detailEnd" type="datetime-local" required
+            /></label>
+            <label class="field"
+              ><span>地点</span
+              ><input id="detailLocation" type="text" maxlength="500"
+            /></label>
+          </div>
+          <div id="detailTaskFields">
+            <label class="field"
+              ><span>截止日期（留空表示无截止日）</span
+              ><input id="detailDue" type="date"
+            /></label>
+            <label class="field"
+              ><span>优先级</span
+              ><select id="detailImportance">
+                <option value="low">低</option>
+                <option value="normal">普通</option>
+                <option value="high">高</option>
+              </select></label
+            >
+            <label class="field"
+              ><span>状态</span
+              ><select id="detailStatus">
+                <option value="notStarted">未开始</option>
+                <option value="inProgress">进行中</option>
+                <option value="completed">已完成</option>
+                <option value="waitingOnOthers">等待他人</option>
+                <option value="deferred">已推迟</option>
+              </select></label
+            >
+          </div>
+          <label class="field"
+            ><span>备注</span
+            ><textarea id="detailNotes" rows="3" maxlength="10000"></textarea>
+          </label>
+        </fieldset>
+        <p id="detailError" class="err hidden" role="alert"></p>
+        <div class="overlay-actions">
+          <button id="btnDetailExternal" type="button" class="text-btn hidden">
+            打开原日历
+          </button>
+          <button id="btnDetailClose" type="button" class="text-btn">
+            关闭
+          </button>
+          <button id="btnDetailEdit" type="button" class="primary-btn">
+            编辑
+          </button>
+          <button id="btnDetailSave" type="submit" class="primary-btn hidden">
+            保存
+          </button>
+        </div>
+      </form>
+</main><script src="appearance.js"></script><script src="entry.js"></script></body></html>

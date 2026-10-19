@@ -69,6 +69,19 @@ test('invalid task edits and deleted records do not create or corrupt data', (t)
   assert.equal(store.updateLocalTask(task.id, { subject: 'x' }), null);
 });
 
+test('new task popup fields and authoritative ID lookups survive reload', (t) => {
+  const { dir, store } = fixture(t);
+  const task = store.addLocalTask({ subject: 'Popup task', dueDateTime: null, notes: 'Details', importance: 'high', status: 'inProgress' });
+  const reloaded = loadStore(dir).getLocalTask(task.id);
+  assert.equal(reloaded.importance, 'high');
+  assert.equal(reloaded.status, 'inProgress');
+  assert.equal(reloaded.notes, 'Details');
+  assert.equal(store.getLocalEvent(task.id), null);
+  store.deleteLocalTask(task.id);
+  assert.equal(store.getLocalTask(task.id), null);
+  assert.throws(() => store.addLocalTask({ subject: 'Bad', importance: 'invalid' }));
+});
+
 test('legacy 1.0.0 records remain editable; overlapping events are returned', (t) => {
   const { dir, store } = fixture(t);
   fs.writeFileSync(path.join(dir, 'local-events.json'), JSON.stringify([{ id: 'old', subject: 'Legacy', start: '2026-09-30T16:00:00Z', end: '2026-10-03T16:00:00Z', isAllDay: true, location: '', local: true }]));

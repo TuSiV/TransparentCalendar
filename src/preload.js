@@ -1,6 +1,13 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("api", {
+  openEntry: (request) => ipcRenderer.invoke('entry:open', request),
+  getEntry: () => ipcRenderer.invoke('entry:get'),
+  saveEntry: (values) => ipcRenderer.invoke('entry:save', values),
+  setEntryDirty: (dirty) => ipcRenderer.send('entry:dirty', dirty),
+  closeEntry: () => ipcRenderer.invoke('entry:close'),
+  onEntrySaveRequested: (cb) => ipcRenderer.on('entry:requestSave', cb),
+  onEntriesChanged: (cb) => ipcRenderer.on('entry:changed', (_e, value) => cb(value)),
   getSettings: () => ipcRenderer.invoke("settings:get"),
   saveSettings: (patch) => ipcRenderer.invoke("settings:save", patch),
   hideWindow: () => ipcRenderer.invoke("win:hide"),

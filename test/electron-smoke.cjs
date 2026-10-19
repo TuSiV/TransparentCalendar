@@ -1,6 +1,6 @@
 // Windows integration check: actual BrowserWindow, preload IPC, JSON persistence,
 // and login-item registration. Uses an isolated temporary userData directory.
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, dialog } = require("electron");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -14,7 +14,7 @@ fs.writeFileSync(
 const timeout = setTimeout(() => {
   console.error("Electron smoke test timed out");
   app.exit(1);
-}, 45000);
+}, 90000);
 require("../src/main");
 app
   .whenReady()
@@ -55,8 +55,27 @@ app
         400,
         "Week toggle shrinks the native window",
       );
+      const settle = async (predicate, label) => {
+        for (let i = 0; i < 180; i++) {
+          if (await predicate()) return;
+          await new Promise((resolve) => setTimeout(resolve, 30));
+        }
+        throw new Error('Popup did not settle: ' + label);
+      };
+      const popupWindow = async () => {
+        let popup;
+        await settle(() => {
+          popup = BrowserWindow.getAllWindows().find((w) => w.webContents.getURL().endsWith('/entry.html'));
+          return popup && !popup.webContents.isLoading();
+        }, 'window loaded');
+        await settle(() => popup.webContents.executeJavaScript("!!document.getElementById('entrySource').textContent"), 'form ready');
+        assert.equal(popup.getOpacity(), 1);
+        assert.equal(popup.isResizable(), true);
+        assert.equal(popup.isModal(), false);
+        return popup;
+      };
       const result = await win.webContents.executeJavaScript(`(async () => {
-      const wait = async (fn, label) => { for (let n = 0; n < 150; n++) { if (fn()) return; await new Promise(r => setTimeout(r, 50)); } throw new Error('UI did not settle: ' + label + ' / ' + JSON.stringify({ status: document.getElementById('statusText').textContent, selected: state.selectedKey, first: document.querySelector('#grid .day')?.dataset.key, detailHidden: document.getElementById('detailOverlay').classList.contains('hidden'), detailError: document.getElementById('detailError').textContent })); };
+      const wait = async (fn, label) => { for (let n = 0; n < 150; n++) { if (fn()) return; await new Promise(r => setTimeout(r, 50)); } throw new Error('UI did not settle: ' + label + ' / ' + JSON.stringify({ status: document.getElementById('statusText').textContent, selected: state.selectedKey, first: document.querySelector('#grid .day')?.dataset.key })); };
       await wait(() => document.getElementById('statusText').textContent === '本地模式', 'local mode');
       state.view = new Date(2026, 11, 31); state.selectedKey = '2026-12-31'; await loadMonth();
       document.getElementById('btnNext').click();
@@ -70,21 +89,6 @@ app
       const event = await api.localEventAdd({ subject: 'IPC event', start: '2026-10-09T09:00:00Z', end: '2026-10-09T10:00:00Z' });
       const task = await api.localTaskAdd({ subject: 'IPC task', dueDateTime: '2026-10-09T23:59:00' });
       state.selectedKey = dateKey(new Date(event.start)); state.view = new Date(event.start); await loadMonth();
-      document.querySelector('#eventList .subj').click();
-      if (document.getElementById('detailSubject').value !== 'IPC event') throw new Error('Event detail failed');
-      document.getElementById('btnDetailEdit').click();
-      document.getElementById('detailSubject').value = 'Edited IPC event';
-      document.getElementById('detailNotes').value = 'Saved by actual preload';
-      document.getElementById('detailForm').requestSubmit();
-      await wait(() => document.getElementById('detailOverlay').classList.contains('hidden'), 'detail saved');
-      state.selectedKey = '2026-10-09'; await loadMonth();
-      document.querySelector('#todoList .subj').click();
-      document.getElementById('btnDetailEdit').click();
-      document.getElementById('detailSubject').value = 'Edited IPC task';
-      document.getElementById('detailImportance').value = 'high';
-      document.getElementById('detailStatus').value = 'completed';
-      document.getElementById('detailForm').requestSubmit();
-      await wait(() => document.getElementById('detailOverlay').classList.contains('hidden'), 'detail saved');
       const settings = await api.getSettings();
       if (settings.startupSupported) {
       await api.saveSettings({ startOnLogin: true });
@@ -94,6 +98,58 @@ app
       }
       return { eventId: event.id, taskId: task.id };
     })()`);
+      await win.webContents.executeJavaScript("document.querySelector('#eventList .subj').click()");
+      let popup = await popupWindow();
+      assert.equal(await popup.webContents.executeJavaScript("document.getElementById('detailSubject').value"), 'IPC event');
+      await popup.webContents.executeJavaScript(`
+        document.getElementById('btnDetailEdit').click();
+        document.getElementById('detailSubject').value = 'Edited IPC event';
+        document.getElementById('detailNotes').value = 'Saved by actual preload';
+        document.getElementById('detailForm').requestSubmit();
+      `);
+      await settle(() => popup.isDestroyed(), 'event saved');
+      await settle(() => win.webContents.executeJavaScript("document.getElementById('eventList').textContent.includes('Edited IPC event')"), 'main event refreshed');
+      await win.webContents.executeJavaScript("document.querySelector('#todoList .subj').click()");
+      popup = await popupWindow();
+      await popup.webContents.executeJavaScript(`
+        document.getElementById('btnDetailEdit').click();
+        document.getElementById('detailSubject').value = 'Edited IPC task';
+        document.getElementById('detailImportance').value = 'high';
+        document.getElementById('detailStatus').value = 'completed';
+        document.getElementById('detailForm').requestSubmit();
+      `);
+      await settle(() => popup.isDestroyed(), 'task saved');
+      // The main process rejects writes from both a read-only popup and the calendar.
+      await win.webContents.executeJavaScript("api.openEntry({kind:'event',mode:'view',item:{subject:'Remote event',local:true,start:'2026-10-09T09:00:00Z',end:'2026-10-09T10:00:00Z'}})");
+      popup = await popupWindow();
+      assert.equal(await popup.webContents.executeJavaScript("document.getElementById('btnDetailEdit').classList.contains('hidden')"), true);
+      assert.equal(await popup.webContents.executeJavaScript("api.saveEntry({subject:'forged',notes:''}).then(()=>false,()=>true)"), true);
+      popup.close();
+      await settle(() => popup.isDestroyed(), 'readonly closed');
+      assert.equal(await win.webContents.executeJavaScript("api.saveEntry({subject:'forged',notes:''}).then(()=>false,()=>true)"), true);
+      // Unsaved edits support Cancel, Discard, and Save via the native close prompt.
+      const originalDialog = dialog.showMessageBox;
+      try {
+        await win.webContents.executeJavaScript("api.openEntry({kind:'task',mode:'create',date:'2026-10-09'})");
+        popup = await popupWindow();
+        await popup.webContents.executeJavaScript("document.getElementById('detailSubject').value='Discard draft';document.getElementById('detailSubject').dispatchEvent(new Event('input',{bubbles:true}))");
+        let prompts = 0;
+        dialog.showMessageBox = async () => { prompts++; return {response:2}; };
+        popup.close();
+        await settle(() => prompts === 1, 'cancel prompt');
+        assert.equal(popup.isDestroyed(), false);
+        dialog.showMessageBox = async () => ({response:1});
+        popup.close();
+        await settle(() => popup.isDestroyed(), 'discard draft');
+        assert.equal(require('../src/store').getLocalTasks().some((t)=>t.subject==='Discard draft'), false);
+        await win.webContents.executeJavaScript("api.openEntry({kind:'task',mode:'create',date:'2026-10-09'})");
+        popup = await popupWindow();
+        await popup.webContents.executeJavaScript("document.getElementById('detailSubject').value='Save on close';document.getElementById('detailSubject').dispatchEvent(new Event('input',{bubbles:true}))");
+        dialog.showMessageBox = async () => ({response:0});
+        popup.close();
+        await settle(() => popup.isDestroyed(), 'save on close');
+        assert.ok(require('../src/store').getLocalTasks().some((t)=>t.subject==='Save on close'));
+      } finally { dialog.showMessageBox = originalDialog; }
       const events = JSON.parse(
         fs.readFileSync(path.join(dir, "local-events.json"), "utf8"),
       );
@@ -236,45 +292,23 @@ app
         "date selection",
       );
       await clickControl("#btnAddEvent");
-      await waitFor(
-        () =>
-          win.webContents.executeJavaScript(
-            '!document.getElementById("addEventBar").classList.contains("hidden")',
-          ),
-        "event form",
-      );
-      await moveTo("#addEventInput", true);
-      await win.webContents.executeJavaScript(
-        'document.getElementById("addEventInput").value = "Click-through event"',
-      );
-      await clickControl("#btnAddEventConfirm");
-      await waitFor(
-        () =>
-          win.webContents.executeJavaScript(
-            'document.getElementById("eventList").textContent.includes("Click-through event")',
-          ),
-        "event creation",
-      );
+      popup = await popupWindow();
+      const selectedDate = await win.webContents.executeJavaScript('state.selectedKey');
+      assert.equal(await popup.webContents.executeJavaScript("document.getElementById('detailStart').value.slice(0,10)"), selectedDate);
+      assert.equal(await popup.webContents.executeJavaScript("getComputedStyle(document.body).backgroundColor"), 'rgb(23, 28, 38)');
+      await popup.webContents.executeJavaScript("document.getElementById('detailSubject').value='Click-through event';document.getElementById('detailForm').requestSubmit()");
+      await settle(() => popup.isDestroyed(), 'new event saved');
+      await settle(() => win.webContents.executeJavaScript('document.getElementById("eventList").textContent.includes("Click-through event")'), 'event creation');
+      assert.equal(await win.webContents.executeJavaScript('api.getClickThrough()'), true);
+      win.focus();
       await clickControl("#btnAddTodo");
-      await waitFor(
-        () =>
-          win.webContents.executeJavaScript(
-            '!document.getElementById("addTodoBar").classList.contains("hidden")',
-          ),
-        "task form",
-      );
-      await moveTo("#todoInput", true);
-      await win.webContents.executeJavaScript(
-        'document.getElementById("todoInput").value = "Click-through task"',
-      );
-      await clickControl("#btnAddTodoConfirm");
-      await waitFor(
-        () =>
-          win.webContents.executeJavaScript(
-            'document.getElementById("todoList").textContent.includes("Click-through task")',
-          ),
-        "task creation",
-      );
+      popup = await popupWindow();
+      assert.equal(await popup.webContents.executeJavaScript("document.getElementById('detailDue').value"), selectedDate);
+      await popup.webContents.executeJavaScript("document.getElementById('detailSubject').value='Click-through task';document.getElementById('detailForm').requestSubmit()");
+      await settle(() => popup.isDestroyed(), 'new task saved');
+      await settle(() => win.webContents.executeJavaScript('document.getElementById("todoList").textContent.includes("Click-through task")'), 'task creation');
+      assert.equal(await win.webContents.executeJavaScript('api.getClickThrough()'), true);
+      win.focus();
       await moveTo(".grip-se", true);
       await moveTo("#weekRow .wk", false);
       await win.webContents.executeJavaScript("api.setClickThrough(false)");
