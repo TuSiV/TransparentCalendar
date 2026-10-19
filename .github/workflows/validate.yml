@@ -1,0 +1,35 @@
+name: Validate desktop calendar
+on:
+  pull_request:
+    paths: ['src/**', 'test/**', 'package*.json', '.github/workflows/validate.yml']
+  push:
+    branches: ['feature/fluent-redesign']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Check JavaScript syntax
+        shell: pwsh
+        run: |
+          Get-ChildItem src,test -Recurse -Include *.js,*.cjs | ForEach-Object {
+            node --check $_.FullName
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Real Electron window and IPC checks
+        run: npm run test:electron
+      - name: Package Windows executables for review
+        run: npm run dist -- --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TransparentCalendar-Windows-review
+          path: dist/*.exe

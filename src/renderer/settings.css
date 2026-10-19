@@ -1,0 +1,274 @@
+.settings-body {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  height: 100vh;
+  background: var(--surface);
+  color: var(--text);
+  overflow: hidden;
+  user-select: text;
+}
+aside {
+  display: flex;
+  flex-direction: column;
+  padding: 28px 14px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--line);
+  user-select: none;
+}
+.brand {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  padding: 0 8px;
+}
+.brand span {
+  display: block;
+  font-weight: 400;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.eyebrow {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1.5px;
+  margin: 10px 0 16px;
+}
+aside .eyebrow {
+  letter-spacing: 0;
+  padding: 0 8px;
+}
+nav {
+  display: grid;
+  gap: 6px;
+  margin-top: 18px;
+}
+nav button {
+  text-align: left;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  padding: 12px;
+  cursor: pointer;
+}
+nav button[aria-current="page"] {
+  color: var(--text);
+  background: var(--hover);
+  box-shadow: inset 3px 0 var(--accent);
+}
+.aside-bottom {
+  margin-top: auto;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 8px;
+}
+main {
+  padding: 28px 30px;
+  overflow-y: auto;
+  position: relative;
+}
+h1 {
+  font-size: 25px;
+  letter-spacing: -0.6px;
+  margin: 0 0 10px;
+}
+h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+.intro {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+  margin-bottom: 22px;
+}
+.setting-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--hover);
+  padding: 8px 16px;
+  margin: 14px 0;
+}
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  min-height: 52px;
+}
+.setting-row + .setting-row,
+.setting-block {
+  border-top: 1px solid var(--line);
+}
+.setting-block {
+  padding: 16px 0;
+}
+.setting-card .field {
+  margin: 12px 0;
+}
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+}
+.range-row input[type="range"] {
+  flex: 1;
+  min-width: 60px;
+}
+.range-row input[type="number"] {
+  width: 65px;
+}
+.presets {
+  display: flex;
+  gap: 6px;
+}
+.presets button {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 14px 0;
+}
+.secondary-btn {
+  background: var(--hover);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+}
+.source-card {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.source-title {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 600;
+}
+.source-title input[type="color"] {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+}
+.source-meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+.source-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+.source-actions label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.source-error {
+  color: var(--danger);
+}
+input,
+select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 8px;
+  max-width: 100%;
+  color-scheme: var(--scheme);
+}
+input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 17px;
+  height: 17px;
+}
+input[type="color"] {
+  padding: 3px;
+  width: 45px;
+  height: 32px;
+}
+.setting-row select {
+  max-width: 58%;
+}
+summary {
+  cursor: pointer;
+  padding: 12px 0;
+}
+.hint {
+  color: var(--muted);
+}
+dialog {
+  position: fixed;
+  margin: auto;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  width: 450px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 20px 80px #0006;
+}
+dialog::backdrop {
+  background: #0007;
+}
+dialog .field {
+  margin: 14px 0;
+}
+#icsResult {
+  white-space: pre-line;
+  line-height: 1.6;
+  font-size: 13px;
+}
+#calendarChoices label {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+}
+#feedback {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: 20px;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--surface);
+}
+#microsoftMessage {
+  white-space: pre-line;
+  user-select: text;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+body.settings-body .text-btn {
+  font-size: 13px;
+  min-height: 36px;
+}
+input[type="password"],
+input[type="text"] {
+  user-select: text;
+  width: 100%;
+}

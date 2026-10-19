@@ -1,18 +1,25 @@
-const fs = require('fs');
-const path = require('path');
-const { app } = require('electron');
-const { PublicClientApplication } = require('@azure/msal-node');
+const fs = require("fs");
+const path = require("path");
+const { app } = require("electron");
+const { PublicClientApplication } = require("@azure/msal-node");
 
-const SCOPES = ['User.Read', 'Calendars.Read', 'Tasks.ReadWrite', 'offline_access'];
+const SCOPES = [
+  "User.Read",
+  "Calendars.Read",
+  "Tasks.ReadWrite",
+  "offline_access",
+];
 
 const clients = new Map();
 
 function cachePlugin() {
-  const cachePath = path.join(app.getPath('userData'), 'msal-cache.json');
+  const cachePath = path.join(app.getPath("userData"), "msal-cache.json");
   return {
     beforeCacheAccess: async (ctx) => {
       try {
-        ctx.tokenCache.deserialize(await fs.promises.readFile(cachePath, 'utf-8'));
+        ctx.tokenCache.deserialize(
+          await fs.promises.readFile(cachePath, "utf-8"),
+        );
       } catch {
         /* 首次运行无缓存 */
       }
@@ -33,20 +40,24 @@ function getClient(clientId) {
       new PublicClientApplication({
         auth: {
           clientId,
-          authority: 'https://login.microsoftonline.com/common',
+          authority: "https://login.microsoftonline.com/common",
         },
         cache: { cachePlugin: cachePlugin() },
-      })
+      }),
     );
   }
   return clients.get(clientId);
 }
 
-async function getSignedInAccount(clientId) {
+async function getSignedInAccount(clientId, accountId) {
   if (!clientId) return null;
   try {
     const accounts = await getClient(clientId).getTokenCache().getAllAccounts();
-    return accounts[0] || null;
+    return (
+      (accountId
+        ? accounts.find((a) => a.homeAccountId === accountId)
+        : accounts[0]) || null
+    );
   } catch {
     return null;
   }
@@ -69,15 +80,19 @@ async function getToken(clientId, account) {
   const client = getClient(clientId);
   const result = await client.acquireTokenSilent({
     account,
-    scopes: ['User.Read', 'Calendars.Read', 'Tasks.ReadWrite'],
+    scopes: ["User.Read", "Calendars.Read", "Tasks.ReadWrite"],
   });
   return result.accessToken;
 }
 
-async function logout(clientId) {
+async function logout(clientId, accountId) {
   const client = getClient(clientId);
-  const account = await getSignedInAccount(clientId);
+  const account = await getSignedInAccount(clientId, accountId);
   if (account) await client.getTokenCache().removeAccount(account);
 }
 
-module.exports = { login, logout, getToken, getSignedInAccount };
+async function listAccounts(clientId) {
+  if (!clientId) return [];
+  return getClient(clientId).getTokenCache().getAllAccounts();
+}
+module.exports = { login, logout, getToken, getSignedInAccount, listAccounts };

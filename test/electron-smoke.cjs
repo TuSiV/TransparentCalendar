@@ -1,38 +1,61 @@
 // Windows integration check: actual BrowserWindow, preload IPC, JSON persistence,
 // and login-item registration. Uses an isolated temporary userData directory.
-const { app, BrowserWindow } = require('electron');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const assert = require('node:assert/strict');
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'calendar-electron-'));
-app.setPath('userData', dir);
-fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify({ calendarView: 'week' }));
-const timeout = setTimeout(() => { console.error('Electron smoke test timed out'); app.exit(1); }, 45000);
-require('../src/main');
-app.whenReady().then(async () => {
-  const startup = require('../src/startup');
-  const originalStartup = startup.getStartupSettings().startOnLogin;
-  try {
-    const win = BrowserWindow.getAllWindows()[0];
-    assert.ok(win, 'Calendar window created');
-    if (win.webContents.isLoading()) await new Promise(resolve => win.webContents.once('did-finish-load', resolve));
-    assert.equal(win.getBounds().height, 400, 'Saved week preference restores compact window');
-    await win.webContents.executeJavaScript(`(async () => {
+const { app, BrowserWindow } = require("electron");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const assert = require("node:assert/strict");
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), "calendar-electron-"));
+app.setPath("userData", dir);
+fs.writeFileSync(
+  path.join(dir, "settings.json"),
+  JSON.stringify({ calendarView: "week" }),
+);
+const timeout = setTimeout(() => {
+  console.error("Electron smoke test timed out");
+  app.exit(1);
+}, 45000);
+require("../src/main");
+app
+  .whenReady()
+  .then(async () => {
+    const startup = require("../src/startup");
+    const originalStartup = startup.getStartupSettings().startOnLogin;
+    try {
+      const win = BrowserWindow.getAllWindows()[0];
+      assert.ok(win, "Calendar window created");
+      if (win.webContents.isLoading())
+        await new Promise((resolve) =>
+          win.webContents.once("did-finish-load", resolve),
+        );
+      assert.equal(
+        win.getBounds().height,
+        400,
+        "Saved week preference restores compact window",
+      );
+      await win.webContents.executeJavaScript(`(async () => {
       for (let n = 0; n < 100 && document.querySelectorAll('#grid .day').length !== 7; n++) await new Promise(r => setTimeout(r, 50));
       if (document.querySelectorAll('#grid .day').length !== 7) throw new Error('Saved week preference not restored');
       document.getElementById('btnViewMode').click();
       for (let n = 0; n < 100 && (document.querySelectorAll('#grid .day').length !== 42 || document.getElementById('btnViewMode').disabled); n++) await new Promise(r => setTimeout(r, 50));
       if (document.querySelectorAll('#grid .day').length !== 42) throw new Error('Month toggle failed');
     })()`);
-    assert.equal(win.getBounds().height, 580, 'Month toggle expands the native window');
-    await win.webContents.executeJavaScript(`(async () => {
+      assert.equal(
+        win.getBounds().height,
+        580,
+        "Month toggle expands the native window",
+      );
+      await win.webContents.executeJavaScript(`(async () => {
       document.getElementById('btnViewMode').click();
       for (let n = 0; n < 100 && (document.querySelectorAll('#grid .day').length !== 7 || document.getElementById('btnViewMode').disabled); n++) await new Promise(r => setTimeout(r, 50));
       if (document.querySelectorAll('#grid .day').length !== 7) throw new Error('Week toggle failed');
     })()`);
-    assert.equal(win.getBounds().height, 400, 'Week toggle shrinks the native window');
-    const result = await win.webContents.executeJavaScript(`(async () => {
+      assert.equal(
+        win.getBounds().height,
+        400,
+        "Week toggle shrinks the native window",
+      );
+      const result = await win.webContents.executeJavaScript(`(async () => {
       const wait = async (fn) => { for (let n = 0; n < 100; n++) { if (fn()) return; await new Promise(r => setTimeout(r, 50)); } throw new Error('UI did not settle'); };
       await wait(() => document.getElementById('statusText').textContent === '本地模式');
       state.view = new Date(2026, 11, 31); state.selectedKey = '2026-12-31'; await loadMonth();
@@ -63,33 +86,113 @@ app.whenReady().then(async () => {
       document.getElementById('detailForm').requestSubmit();
       await wait(() => document.getElementById('detailOverlay').classList.contains('hidden') && document.getElementById('statusText').textContent === '已保存');
       const settings = await api.getSettings();
-      if (!settings.startupSupported) throw new Error('Windows startup support missing');
+      if (settings.startupSupported) {
       await api.saveSettings({ startOnLogin: true });
       if (!(await api.getSettings()).startOnLogin) throw new Error('Startup enable failed');
       await api.saveSettings({ startOnLogin: false });
       if ((await api.getSettings()).startOnLogin) throw new Error('Startup disable failed');
+      }
       return { eventId: event.id, taskId: task.id };
     })()`);
-    const events = JSON.parse(fs.readFileSync(path.join(dir, 'local-events.json'), 'utf8'));
-    const tasks = JSON.parse(fs.readFileSync(path.join(dir, 'local-tasks.json'), 'utf8'));
-    assert.equal(events.find(e => e.id === result.eventId).subject, 'Edited IPC event');
-    assert.equal(events[0].notes, 'Saved by actual preload');
-    assert.equal(tasks.find(t => t.id === result.taskId).status, 'completed');
-    assert.equal(tasks[0].importance, 'high');
-    assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'settings.json'), 'utf8')).calendarView, 'week');
-    const loaded = new Promise(resolve => win.webContents.once('did-finish-load', resolve));
-    win.webContents.reload();
-    await loaded;
-    await win.webContents.executeJavaScript(`(async () => {
+      const events = JSON.parse(
+        fs.readFileSync(path.join(dir, "local-events.json"), "utf8"),
+      );
+      const tasks = JSON.parse(
+        fs.readFileSync(path.join(dir, "local-tasks.json"), "utf8"),
+      );
+      assert.equal(
+        events.find((e) => e.id === result.eventId).subject,
+        "Edited IPC event",
+      );
+      assert.equal(events[0].notes, "Saved by actual preload");
+      assert.equal(
+        tasks.find((t) => t.id === result.taskId).status,
+        "completed",
+      );
+      assert.equal(tasks[0].importance, "high");
+      assert.equal(
+        JSON.parse(fs.readFileSync(path.join(dir, "settings.json"), "utf8"))
+          .calendarView,
+        "week",
+      );
+      const loaded = new Promise((resolve) =>
+        win.webContents.once("did-finish-load", resolve),
+      );
+      win.webContents.reload();
+      await loaded;
+      await win.webContents.executeJavaScript(`(async () => {
       for (let n = 0; n < 100 && document.querySelectorAll('#grid .day').length !== 7; n++) await new Promise(r => setTimeout(r, 50));
       if (document.querySelectorAll('#grid .day').length !== 7) throw new Error('Week mode lost after reload');
     })()`);
-    console.log('PASS: week/month native resize, persisted view, cross-year navigation, Sunday start, detail/edit IPC, startup enable/disable');
-  } finally {
-    startup.setStartupEnabled(originalStartup);
+      // New window behavior: per-view size persistence, true background alpha,
+      // settings isolation and safe return from click-through.
+      assert.equal(
+        win.getOpacity(),
+        1,
+        "Text and controls never fade with background",
+      );
+      win.setBounds({ ...win.getBounds(), width: 520, height: 450 });
+      await new Promise((r) => setTimeout(r, 250));
+      await win.webContents.executeJavaScript(`api.setCalendarView('month')`);
+      await win.webContents.executeJavaScript(`api.setCalendarView('week')`);
+      assert.equal(win.getBounds().width, 520);
+      assert.equal(win.getBounds().height, 450);
+      await win.webContents.executeJavaScript(
+        `api.saveSettings({ backgroundOpacity: 0 })`,
+      );
+      const appearance = await win.webContents.executeJavaScript(
+        `({ alpha: getComputedStyle(document.getElementById('card')).backgroundColor, textOpacity: getComputedStyle(document.getElementById('monthTitle')).opacity })`,
+      );
+      assert.match(appearance.alpha, /rgba\(.*?, 0\)/);
+      assert.equal(appearance.textOpacity, "1");
+      await win.webContents.executeJavaScript(`api.openSettings()`);
+      const settingsWindow = BrowserWindow.getAllWindows().find(
+        (w) => w !== win,
+      );
+      assert.ok(settingsWindow, "Separate settings BrowserWindow");
+      if (settingsWindow.webContents.isLoading())
+        await new Promise((r) =>
+          settingsWindow.webContents.once("did-finish-load", r),
+        );
+      await settingsWindow.webContents.executeJavaScript(`(async () => {
+      for (let n = 0; n < 100 && !document.getElementById('appVersion').textContent; n++) await new Promise(r=>setTimeout(r, 30));
+      if (document.querySelectorAll('[data-page]').length !== 5) throw new Error('Settings navigation missing');
+      await api.saveSettings({ theme: 'light', backgroundOpacity: 25 });
+      await api.setIgnoreMouseEvents(true);
+      if (!(await api.getClickThrough())) throw new Error('Click-through not enabled');
+      await api.setIgnoreMouseEvents(false);
+    })()`);
+      assert.equal(
+        await win.webContents.executeJavaScript(
+          `document.documentElement.dataset.theme`,
+        ),
+        "light",
+      );
+      assert.equal(win.getOpacity(), 1);
+      const before = win.getBounds();
+      await win.webContents.executeJavaScript(`api.resizeStart('se')`);
+      await new Promise((r) => setTimeout(r, 50));
+      await win.webContents.executeJavaScript(`api.resizeEnd()`);
+      assert.deepEqual(
+        win.getBounds(),
+        before,
+        "Resize grip without pointer delta keeps bounds",
+      );
+      settingsWindow.destroy();
+      console.log(
+        "PASS: local CRUD, startup, per-view bounds, transparent background, opaque text, separate settings, live appearance, click-through recovery",
+      );
+    } finally {
+      if (process.platform === "win32")
+        startup.setStartupEnabled(originalStartup);
+      clearTimeout(timeout);
+      // Chromium keeps profile files open on Windows until process exit.
+      // The isolated CI temporary directory is removed with the runner.
+    }
+    app.quit();
+  })
+  .catch((err) => {
+    console.error(err);
     clearTimeout(timeout);
-    // Chromium keeps profile files open on Windows until process exit.
-    // The isolated CI temporary directory is removed with the runner.
-  }
-  app.quit();
-}).catch(err => { console.error(err); clearTimeout(timeout); app.exit(1); });
+    app.exit(1);
+  });
