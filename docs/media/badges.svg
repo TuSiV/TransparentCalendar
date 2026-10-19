@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="28" viewBox="0 0 300 28" role="img" aria-label="Windows x64 · Local first · MIT">
+  <g font-family="Segoe UI,Arial,sans-serif" font-size="12" text-anchor="middle">
+    <rect x="0.5" y="0.5" width="109" height="27" rx="6" fill="#eff6ff" stroke="#bfdbfe"/>
+    <text x="55" y="18" fill="#1d4ed8">Windows x64</text>
+    <rect x="120.5" y="0.5" width="109" height="27" rx="6" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="175" y="18" fill="#334155">Local first</text>
+    <rect x="240.5" y="0.5" width="59" height="27" rx="6" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="270" y="18" fill="#334155">MIT</text>
+  </g>
+</svg>
