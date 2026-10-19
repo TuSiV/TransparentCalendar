@@ -226,6 +226,7 @@ app
       );
       assert.equal(win.getOpacity(), 1);
       settingsWindow.destroy();
+      await win.webContents.executeJavaScript('api.saveSettings({ backgroundOpacity: 0 })');
 
       // Check the actual native ignore calls while real DOM input and preload
       // messages move between controls and the blank calendar background.
@@ -295,7 +296,7 @@ app
       popup = await popupWindow();
       const selectedDate = await win.webContents.executeJavaScript('state.selectedKey');
       assert.equal(await popup.webContents.executeJavaScript("document.getElementById('detailStart').value.slice(0,10)"), selectedDate);
-      assert.equal(await popup.webContents.executeJavaScript("getComputedStyle(document.body).backgroundColor"), 'rgb(23, 28, 38)');
+      assert.equal(await popup.webContents.executeJavaScript("getComputedStyle(document.body).backgroundColor"), 'rgb(248, 250, 252)');
       await popup.webContents.executeJavaScript("document.getElementById('detailSubject').value='Click-through event';document.getElementById('detailForm').requestSubmit()");
       await settle(() => popup.isDestroyed(), 'new event saved');
       await settle(() => win.webContents.executeJavaScript('document.getElementById("eventList").textContent.includes("Click-through event")'), 'event creation');
