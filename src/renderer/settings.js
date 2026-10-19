@@ -365,7 +365,10 @@ $("syncNow").onclick = async () => {
   }
 };
 $("clickThrough").onchange = () =>
-  api.setIgnoreMouseEvents($("clickThrough").checked);
+  api.setClickThrough($("clickThrough").checked);
+api.onClickThroughChanged(({ enabled }) => {
+  $("clickThrough").checked = enabled;
+});
 $("resetBounds").onclick = () => api.resetBounds();
 $("resetAppearance").onclick = () =>
   save({

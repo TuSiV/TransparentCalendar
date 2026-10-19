@@ -20,14 +20,38 @@ const startup = require("./startup");
 const preferences = require("./preferences");
 const sources = require("./sources");
 const crypto = require("node:crypto");
+const { createClickThrough } = require("./click-through");
 let settingsWin = null;
 let resizeTimer = null;
 let changingView = false;
 
 let win = null;
 let tray = null;
-let clickThrough = false;
 app.isQuitting = false;
+
+function interactionState(enabled = mousePolicy.enabled) {
+  const cursor = screen.getCursorScreenPoint();
+  const bounds = win?.getBounds();
+  return {
+    enabled,
+    point: bounds ? { x: cursor.x - bounds.x, y: cursor.y - bounds.y } : null,
+  };
+}
+const mousePolicy = createClickThrough({
+  apply(ignore) {
+    if (win && !win.isDestroyed())
+      win.setIgnoreMouseEvents(ignore, { forward: true });
+  },
+  notify(enabled) {
+    for (const window of [win, settingsWin]) {
+      if (window && !window.isDestroyed())
+        window.webContents.send(
+          "win:clickThroughChanged",
+          interactionState(enabled),
+        );
+    }
+  },
+});
 
 const settingsPath = () => path.join(app.getPath("userData"), "settings.json");
 
@@ -81,6 +105,7 @@ function createWindow() {
   });
 
   win.setAlwaysOnTop(s.alwaysOnTop);
+  mousePolicy.refresh();
   try {
     registerShortcut(s.shortcut);
   } catch {
@@ -124,8 +149,7 @@ function createWindow() {
 }
 
 function setClickThrough(v) {
-  clickThrough = v;
-  if (win && !win.isDestroyed()) win.setIgnoreMouseEvents(v, { forward: true });
+  mousePolicy.setEnabled(v);
   if (tray) tray.setContextMenu(buildTrayMenu());
 }
 
@@ -149,9 +173,9 @@ function buildTrayMenu() {
     },
     { type: "separator" },
     {
-      label: "鼠标穿透（点击穿透到桌面）",
+      label: "鼠标穿透（空白处穿透，控件可操作）",
       type: "checkbox",
-      checked: clickThrough,
+      checked: mousePolicy.enabled,
       click: (item) => setClickThrough(item.checked),
     },
     { type: "separator" },
@@ -288,10 +312,15 @@ ipcMain.handle("settings:save", (_e, patch) => {
   return { ...saved, ...startup.getStartupSettings() };
 });
 ipcMain.handle("win:hide", () => win && win.hide());
-ipcMain.handle("win:setIgnoreMouseEvents", (_e, ignore) =>
-  setClickThrough(!!ignore),
+ipcMain.handle("win:setClickThrough", (_e, enabled) =>
+  setClickThrough(!!enabled),
 );
-ipcMain.handle("win:getClickThrough", () => clickThrough);
+ipcMain.handle("win:getClickThrough", () => mousePolicy.enabled);
+ipcMain.handle("win:getInteractionState", () => interactionState());
+ipcMain.on("win:interactive", (event, interactive) => {
+  if (event.sender === win?.webContents && typeof interactive === "boolean")
+    mousePolicy.setInteractive(interactive);
+});
 ipcMain.handle("win:resetBounds", () => {
   const s = loadSettings();
   const area = screen.getPrimaryDisplay().workArea;
