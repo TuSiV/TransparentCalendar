@@ -158,9 +158,9 @@ app
       for (let n = 0; n < 100 && !document.getElementById('appVersion').textContent; n++) await new Promise(r=>setTimeout(r, 30));
       if (document.querySelectorAll('[data-page]').length !== 5) throw new Error('Settings navigation missing');
       await api.saveSettings({ theme: 'light', backgroundOpacity: 25 });
-      await api.setIgnoreMouseEvents(true);
+      await api.setClickThrough(true);
       if (!(await api.getClickThrough())) throw new Error('Click-through not enabled');
-      await api.setIgnoreMouseEvents(false);
+      await api.setClickThrough(false);
     })()`);
       assert.equal(
         await win.webContents.executeJavaScript(
@@ -169,6 +169,121 @@ app
         "light",
       );
       assert.equal(win.getOpacity(), 1);
+      settingsWindow.destroy();
+
+      // Check the actual native ignore calls while real DOM input and preload
+      // messages move between controls and the blank calendar background.
+      const nativeMouseCalls = [];
+      const nativeIgnore = win.setIgnoreMouseEvents.bind(win);
+      win.setIgnoreMouseEvents = (ignore, options) => {
+        nativeMouseCalls.push(ignore);
+        return nativeIgnore(ignore, options);
+      };
+      const waitFor = async (predicate, label) => {
+        for (let i = 0; i < 100; i++) {
+          if (await predicate()) return;
+          await new Promise((resolve) => setTimeout(resolve, 30));
+        }
+        throw new Error("Interactive click-through failed: " + label);
+      };
+      const moveTo = async (selector, interactive) => {
+        const point = await win.webContents.executeJavaScript(`(() => {
+          const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
+          return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
+        })()`);
+        win.webContents.sendInputEvent({ type: "mouseMove", ...point });
+        await waitFor(() => nativeMouseCalls.at(-1) === !interactive, selector);
+        assert.equal(
+          await win.webContents.executeJavaScript("api.getClickThrough()"),
+          true,
+          "Hover must preserve mode",
+        );
+        return point;
+      };
+      const clickControl = async (selector) => {
+        const point = await moveTo(selector, true);
+        win.webContents.sendInputEvent({
+          type: "mouseDown",
+          button: "left",
+          clickCount: 1,
+          ...point,
+        });
+        win.webContents.sendInputEvent({
+          type: "mouseUp",
+          button: "left",
+          clickCount: 1,
+          ...point,
+        });
+      };
+      win.show();
+      win.focus();
+      await win.webContents.executeJavaScript("api.setClickThrough(true)");
+      await moveTo("#weekRow .wk", false);
+      await clickControl("#btnNext");
+      await waitFor(
+        () =>
+          win.webContents.executeJavaScript(
+            '!document.getElementById("btnViewMode").disabled',
+          ),
+        "navigation",
+      );
+      await clickControl("#grid .day:nth-child(4)");
+      await waitFor(
+        () =>
+          win.webContents.executeJavaScript(
+            'state.selectedKey === document.querySelector("#grid .day:nth-child(4)").dataset.key',
+          ),
+        "date selection",
+      );
+      await clickControl("#btnAddEvent");
+      await waitFor(
+        () =>
+          win.webContents.executeJavaScript(
+            '!document.getElementById("addEventBar").classList.contains("hidden")',
+          ),
+        "event form",
+      );
+      await moveTo("#addEventInput", true);
+      await win.webContents.executeJavaScript(
+        'document.getElementById("addEventInput").value = "Click-through event"',
+      );
+      await clickControl("#btnAddEventConfirm");
+      await waitFor(
+        () =>
+          win.webContents.executeJavaScript(
+            'document.getElementById("eventList").textContent.includes("Click-through event")',
+          ),
+        "event creation",
+      );
+      await clickControl("#btnAddTodo");
+      await waitFor(
+        () =>
+          win.webContents.executeJavaScript(
+            '!document.getElementById("addTodoBar").classList.contains("hidden")',
+          ),
+        "task form",
+      );
+      await moveTo("#todoInput", true);
+      await win.webContents.executeJavaScript(
+        'document.getElementById("todoInput").value = "Click-through task"',
+      );
+      await clickControl("#btnAddTodoConfirm");
+      await waitFor(
+        () =>
+          win.webContents.executeJavaScript(
+            'document.getElementById("todoList").textContent.includes("Click-through task")',
+          ),
+        "task creation",
+      );
+      await moveTo(".grip-se", true);
+      await moveTo("#weekRow .wk", false);
+      await win.webContents.executeJavaScript("api.setClickThrough(false)");
+      assert.equal(
+        nativeMouseCalls.at(-1),
+        false,
+        "Disabling restores full interaction",
+      );
+      win.setIgnoreMouseEvents = nativeIgnore;
       const before = win.getBounds();
       await win.webContents.executeJavaScript(`api.resizeStart('se')`);
       await new Promise((r) => setTimeout(r, 50));
@@ -178,9 +293,8 @@ app
         before,
         "Resize grip without pointer delta keeps bounds",
       );
-      settingsWindow.destroy();
       console.log(
-        "PASS: local CRUD, startup, per-view bounds, transparent background, opaque text, separate settings, live appearance, click-through recovery",
+        "PASS: local CRUD, startup, per-view bounds, appearance, settings, and interactive click-through date navigation/event creation/task creation/resize grips/background",
       );
     } finally {
       if (process.platform === "win32")

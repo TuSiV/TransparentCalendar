@@ -52,7 +52,7 @@ Packages are available for **Windows x64**. Use the system tray to reopen a hidd
 | Configure always-on-top, sync or Windows startup | Settings or the tray menu |
 | Restore interaction after enabling click-through | Turn it off in the tray, or press **Ctrl + Alt + C** |
 
-The recovery shortcut is configurable. The settings window remains interactive.
+With click-through enabled, **empty areas pass clicks to the desktop while dates, buttons, events, tasks, editing panels and resize grips remain interactive**. Change dates or add plans without disabling the mode. The recovery shortcut is configurable; the settings window remains interactive.
 
 ## Calendar connections
 

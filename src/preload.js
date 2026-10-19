@@ -23,9 +23,14 @@ contextBridge.exposeInMainWorld("api", {
   openEventLink: (url) => ipcRenderer.invoke("calendar:openEventLink", url),
   appInfo: () => ipcRenderer.invoke("app:info"),
   openLink: (url) => ipcRenderer.invoke("app:openLink", url),
-  setIgnoreMouseEvents: (ignore) =>
-    ipcRenderer.invoke("win:setIgnoreMouseEvents", ignore),
+  setClickThrough: (enabled) =>
+    ipcRenderer.invoke("win:setClickThrough", enabled),
   getClickThrough: () => ipcRenderer.invoke("win:getClickThrough"),
+  getInteractionState: () => ipcRenderer.invoke("win:getInteractionState"),
+  reportInteractive: (interactive) =>
+    ipcRenderer.send("win:interactive", interactive),
+  onClickThroughChanged: (cb) =>
+    ipcRenderer.on("win:clickThroughChanged", (_event, state) => cb(state)),
 
   login: () => ipcRenderer.invoke("auth:login"),
   logout: (accountId) => ipcRenderer.invoke("auth:logout", accountId),

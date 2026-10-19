@@ -966,6 +966,7 @@ async function init() {
   setupAddEvent();
   setupLocalDetail();
   setupResize();
+  MouseInteraction.setup({ document, window, api });
   const s = await refreshAuth();
   await loadMonth();
   configureSyncTimer();
