@@ -1,78 +1,90 @@
-# 透明日历 · Outlook | TransparentCalendar
+# TransparentCalendar · 透明日历
 
-桌面透明置顶日历小部件，接入 Outlook 日历。
-A transparent, always-on-top desktop calendar widget with Outlook integration.
+让重要安排，自然留在桌面。
 
-## 功能 Features
+Windows 透明悬浮日历，支持本地日程与任务、Outlook / Microsoft 365，以及 ICS 日历订阅。
 
-- 月／周视图切换：点击标题栏“周”缩减为当周七天，窗口同步缩小；点击“月”展开，重启记住视图。
-- 周视图支持上一周／下一周、“今”返回当周，以及周一／周日起始日。
-- 透明无边框置顶窗口，可拖动、位置记忆 / Transparent borderless window, draggable, remembers position
-- 月视图 + 日程打点，点击日期查看当日日程 / Monthly view with event dots, click a date to see that day's events
-- 支持两种接入方式：ICS 订阅（简单）/ Microsoft Graph API（实时）/ Two sync modes: ICS subscription (simple) / Graph API (real-time)
-- 托盘常驻：显示/隐藏、鼠标穿透、退出 / System tray: show/hide, click-through, quit
-- 不透明度可调 / Adjustable opacity
-- 点击本地日程/任务查看详情、编辑并保存；支持备注、全天日程、任务优先级及状态
-- 设置页可开启或关闭 Windows 开机启动（安装版及便携版）
-- 本地事件与任务支持，无需账户 / Local event and task support, no account required
-- Microsoft Todo 集成（Graph 模式）/ Microsoft Todo integration (Graph mode)
-- 点击穿透模式，悬停智能检测 / Click-through mode with smart hover detection
-- 可配置每周起始日（周一/周日）/ Configurable first day of week (Monday/Sunday)
+[下载正式版本](https://github.com/TuSiV/TransparentCalendar/releases) · [报告问题](https://github.com/TuSiV/TransparentCalendar/issues) · [MIT 许可证](LICENSE)
 
-## 使用 Usage
+## 桌面上的轻量工作面板
 
-```powershell
-npm install
+- **背景透明，文字清晰**：背景不透明度 0%—100%，不降低文字与按钮的不透明度。
+- **窗口自由缩放**：拖动四边或四角调整，宽窗口自动采用左右布局；月／周视图分别记忆位置与尺寸。
+- **深浅主题**：支持跟随系统、字号调节、强调色与文字增强。
+- **本地优先**：无需账户即可添加、查看、编辑和删除日程与任务，支持备注、全天日程和任务优先级。
+- **多个日历并行显示**：同时接入多个 Microsoft 账户下的日历和多个 ICS 订阅，用名称和颜色区分来源。
+- **独立设置中心**：外观、日历账户、日程与任务、窗口行为、关于。
+- **托盘常驻**：显示／隐藏、设置、立即同步、置顶、鼠标穿透与退出；Windows 支持开机启动。
+
+外部日历首期只读。本地记录可编辑，Microsoft To Do 保留创建与完成操作。Google 原生授权、iCloud CalDAV 和毛玻璃效果不在此版本范围内。
+
+## 使用
+
+### 本地日程与任务
+
+点击日期查看当天安排；点击 `+` 添加。点击本地记录查看详情，再点击「编辑」修改。任务圆圈用于完成任务，已完成的本地任务可以再次点击圆圈恢复。
+
+标题栏的「周／月」切换视图，「今」返回今天。拖动顶部空白区域移动窗口；拖动边缘缩放。
+
+### ICS 订阅
+
+1. 从日历提供方获取 ICS 或 webcal 订阅地址。
+2. 打开 **设置 → 日历账户 → ICS 订阅**。
+3. 填写名称、地址和颜色，点击 **测试连接**。
+4. 成功解析后添加；未来 90 天内无日程的有效订阅也可添加。
+
+多个订阅可同时显示；地址默认遮罩。移除订阅会移除该来源缓存，本地数据保留。
+
+### Outlook / Microsoft 365
+
+此项目尚未提供内置 Azure 应用身份，需要使用自己的公共客户端 Client ID。应用须允许公共客户端设备代码登录，并满足目标租户授权策略。
+
+1. 在 **设置 → 日历账户 → Microsoft 接入配置** 填写 Client ID。
+2. 点击 **连接 Microsoft**，在 Microsoft 授权页面输入设备代码。
+3. 授权后选择需要添加的日历。
+4. 如需另一个账户，再次连接；已连接账户可重新选择日历。
+
+应用当前请求 `User.Read`、`Calendars.Read`、`Tasks.ReadWrite` 和 `offline_access`，其中任务权限用于 Microsoft To Do。更换 Client ID 前须断开原 Microsoft 账户。
+
+### 同步与离线
+
+| 控制 | 行为 |
+|---|---|
+| 隐藏日历 | 不在主界面显示，仍按设置同步 |
+| 暂停来源更新 | 保留缓存，不自动更新该来源 |
+| 关闭自动同步 | 读取已有范围缓存，手动刷新可更新未暂停来源 |
+| 某来源失败 | 其他来源继续；失败来源保留相同时间范围的缓存 |
+| 同步间隔 | 5、10、15、30、60 分钟 |
+
+缓存按来源与请求时间范围保存，并非完整日历镜像。未曾成功获取的时间范围在断网时可能没有内容。订阅内容更新速度还取决于提供方。
+
+### 鼠标穿透
+
+开启后，主日历鼠标操作传递给桌面。通过托盘关闭穿透，或按默认快捷键 **Ctrl + Alt + C** 恢复交互并显示窗口。快捷键可在窗口行为页面修改；设置窗口不穿透。
+
+## 数据与隐私
+
+本地日程、任务、设置、日历缓存和 Microsoft 登录缓存保存在应用用户数据目录。ICS 地址可能包含访问密钥；分享设置文件前应移除地址。日历来源错误提示不回显订阅地址或令牌。
+
+升级会迁移旧版 ICS 和外观配置，保留本地记录。旧版整体透明度换算为背景透明度，文字恢复清晰。
+
+## 开发与验证
+
+```sh
+npm ci
+npm test
 npm start
 ```
 
-### 方式一：ICS 订阅（推荐，无需 Azure）
+Windows 真实窗口与 IPC 验证：
 
-1. 打开 [Outlook 网页版](https://outlook.live.com/owa) → 左下角齿轮 → **日历**
-2. **共享/发布** → 选择要共享的日历 → **获取日历链接**
-3. 复制 **ICS** 格式链接（不是 webcal，插件会自动转换）
-4. 托盘图标 → 设置 → 粘贴到「ICS 订阅链接」→ 保存
-
-### Option 1: ICS Subscription (Recommended, No Azure Needed)
-
-1. Open [Outlook on the web](https://outlook.live.com/owa) → gear icon → **Calendar**
-2. **Shared calendars** → pick a calendar → **Get a link**
-3. Copy the **ICS** format link (not webcal — the app converts automatically)
-4. Tray icon → Settings → paste the ICS URL → Save
-
-### 方式二：Microsoft Graph API
-
-需要注册 Azure 应用（个人 Microsoft 账号可能无 Entra ID 目录，需先创建租户）。
-
-1. 打开 [Azure 门户 - 应用注册](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)，点击「新注册」
-2. 账户类型选「任何组织目录中的账户和个人 Microsoft 账户」
-3. 注册后复制**应用程序(客户端) ID**
-4. API 权限添加 `Calendars.Read`（委托），身份验证中允许「公共客户端流」
-5. 托盘 → 设置 → 填入 Client ID → 点击「登录 Microsoft 账户」→ 浏览器输入设备码
-
-### Option 2: Microsoft Graph API
-
-Requires an Azure app registration (personal Microsoft accounts may need to create a tenant first).
-
-1. Open [Azure Portal – App Registrations](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade) → **New registration**
-2. Account type: **Accounts in any organizational directory and personal Microsoft accounts**
-3. Copy the **Application (client) ID**
-4. Add `Calendars.Read` permission (delegated); enable **Allow public client flows** in Authentication
-5. Tray → Settings → paste Client ID → **Login Microsoft Account** → enter the device code in browser
-
-## 目录结构 Project Structure
-
-```
-src/main.js        主进程：透明窗口、托盘、IPC / Main process: window, tray, IPC
-src/auth.js        MSAL 设备码登录 + 令牌缓存 / MSAL device code login + token cache
-src/graph.js       Graph API calendarView 数据拉取 / Graph API calendarView fetch
-src/ics.js         ICS 订阅解析（ical.js）/ ICS subscription parser
-src/todo.js        Microsoft Todo API
-src/store.js       本地事件/任务 JSON 存储 / Local event/task JSON persistence
-src/preload.js     渲染层安全桥接 / Secure renderer bridge
-src/renderer/      界面（月历 + 日程/任务列表 + 设置）/ UI (calendar + panels + settings)
+```sh
+npm run test:electron
+npm run dist -- --publish never
 ```
 
-## 许可 License
+拉取请求及开发分支会运行 Windows 验证并生成可下载的审查安装包。发布工作流仍只在主分支运行；开发分支不会发布正式版本。
+
+## License
 
 [MIT](LICENSE)
