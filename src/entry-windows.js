@@ -1,11 +1,13 @@
 const path = require('node:path');
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, screen } = require('electron');
 const store = require('./store');
+const { centeredEntryBounds } = require('./entry-bounds');
 
 // Each editor owns its record and write permissions in the main process.
 function setupEntryWindows({ getParent, getSettings, createOutlookTask, changed }) {
   const sessions = new Map();
   let quitting = false;
+  const desktopArea = () => screen.getDisplayMatching(getParent().getBounds()).workArea;
   const lookup = (kind, id) => kind === 'event' ? store.getLocalEvent(id) : store.getLocalTask(id);
   function sessionFor(event) {
     const session = sessions.get(event.sender.id);
@@ -25,6 +27,9 @@ function setupEntryWindows({ getParent, getSettings, createOutlookTask, changed 
       for (const session of sessions.values()) {
         if (session.kind === kind && session.id === id) {
           if (session.window.isMinimized()) session.window.restore();
+          const { x, y, width, height, minWidth, minHeight } = centeredEntryBounds(desktopArea(), session.window.getBounds());
+          session.window.setMinimumSize(minWidth, minHeight);
+          session.window.setBounds({ x, y, width, height });
           session.window.show();
           session.window.focus();
           return;
@@ -38,7 +43,7 @@ function setupEntryWindows({ getParent, getSettings, createOutlookTask, changed 
     const target = mode === 'create' && kind === 'task' && settings.defaultTaskTarget === 'outlook' ? 'outlook' : 'local';
     const readonly = mode === 'view' && !id;
     const popup = new BrowserWindow({
-      width: 520, height: 700, minWidth: 420, minHeight: 480,
+      ...centeredEntryBounds(desktopArea()),
       parent: getParent(), modal: false, show: false,
       backgroundColor: settings.theme === 'light' ? '#f8fafc' : '#171c26',
       transparent: false, resizable: true, alwaysOnTop: settings.alwaysOnTop,

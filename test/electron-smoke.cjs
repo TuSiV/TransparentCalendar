@@ -1,6 +1,6 @@
 // Windows integration check: actual BrowserWindow, preload IPC, JSON persistence,
 // and login-item registration. Uses an isolated temporary userData directory.
-const { app, BrowserWindow, dialog } = require("electron");
+const { app, BrowserWindow, dialog, screen } = require("electron");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -72,6 +72,10 @@ app
         assert.equal(popup.getOpacity(), 1);
         assert.equal(popup.isResizable(), true);
         assert.equal(popup.isModal(), false);
+        const area = screen.getDisplayMatching(win.getBounds()).workArea;
+        const bounds = popup.getBounds();
+        assert.ok(Math.abs(bounds.x + bounds.width / 2 - area.x - area.width / 2) <= 1, 'Popup is horizontally centered on the desktop');
+        assert.ok(Math.abs(bounds.y + bounds.height / 2 - area.y - area.height / 2) <= 1, 'Popup is vertically centered on the desktop');
         return popup;
       };
       const result = await win.webContents.executeJavaScript(`(async () => {
