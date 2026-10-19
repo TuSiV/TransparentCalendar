@@ -261,7 +261,7 @@ app
           execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
             'Add-Type -TypeDefinition \'using System.Runtime.InteropServices; public static class CalendarTestMouse { [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y); }\'; ' +
             `[CalendarTestMouse]::SetCursorPos(${cursor.x}, ${cursor.y}) | Out-Null`,
-          ], { stdio: 'pipe', timeout: 10000 });
+          ], { stdio: 'pipe', timeout: 10000, windowsHide: true });
         }
         win.webContents.sendInputEvent({ type: "mouseMove", ...point });
         await waitFor(() => nativeMouseCalls.at(-1) === !interactive, selector);
