@@ -6,8 +6,6 @@ Windows 透明悬浮日历，支持本地日程与任务、Outlook / Microsoft 3
 
 [下载正式版本](https://github.com/TuSiV/TransparentCalendar/releases) · [报告问题](https://github.com/TuSiV/TransparentCalendar/issues) · [MIT 许可证](LICENSE)
 
-> 此分支为 1.2.0 开发版本。下载页中的正式版本可能尚未包含以下新增能力。
-
 ## 桌面上的轻量工作面板
 
 - **背景透明，文字清晰**：背景不透明度 0%—100%，不降低文字与按钮的不透明度。

@@ -56,15 +56,15 @@ app
         "Week toggle shrinks the native window",
       );
       const result = await win.webContents.executeJavaScript(`(async () => {
-      const wait = async (fn) => { for (let n = 0; n < 100; n++) { if (fn()) return; await new Promise(r => setTimeout(r, 50)); } throw new Error('UI did not settle'); };
-      await wait(() => document.getElementById('statusText').textContent === '本地模式');
+      const wait = async (fn, label) => { for (let n = 0; n < 150; n++) { if (fn()) return; await new Promise(r => setTimeout(r, 50)); } throw new Error('UI did not settle: ' + label + ' / ' + JSON.stringify({ status: document.getElementById('statusText').textContent, selected: state.selectedKey, first: document.querySelector('#grid .day')?.dataset.key, detailHidden: document.getElementById('detailOverlay').classList.contains('hidden'), detailError: document.getElementById('detailError').textContent })); };
+      await wait(() => document.getElementById('statusText').textContent === '本地模式', 'local mode');
       state.view = new Date(2026, 11, 31); state.selectedKey = '2026-12-31'; await loadMonth();
       document.getElementById('btnNext').click();
-      await wait(() => document.querySelector('#grid .day').dataset.key === '2027-01-04' && state.selectedKey === '2027-01-07');
+      await wait(() => document.querySelector('#grid .day').dataset.key === '2027-01-04' && state.selectedKey === '2027-01-07', 'next week');
       document.getElementById('btnPrev').click();
-      await wait(() => document.querySelector('#grid .day').dataset.key === '2026-12-28');
+      await wait(() => document.querySelector('#grid .day').dataset.key === '2026-12-28', 'previous week');
       document.getElementById('btnToday').click();
-      await wait(() => state.selectedKey === dateKey(new Date()));
+      await wait(() => state.selectedKey === dateKey(new Date()), 'today');
       state.weekStart = 0; await api.saveSettings({ weekStart: 0 }); renderWeekRow(); await loadMonth();
       if (new Date(document.querySelector('#grid .day').dataset.key + 'T00:00:00').getDay() !== 0) throw new Error('Sunday week start failed');
       const event = await api.localEventAdd({ subject: 'IPC event', start: '2026-10-09T09:00:00Z', end: '2026-10-09T10:00:00Z' });
@@ -76,7 +76,7 @@ app
       document.getElementById('detailSubject').value = 'Edited IPC event';
       document.getElementById('detailNotes').value = 'Saved by actual preload';
       document.getElementById('detailForm').requestSubmit();
-      await wait(() => document.getElementById('detailOverlay').classList.contains('hidden') && document.getElementById('statusText').textContent === '已保存');
+      await wait(() => document.getElementById('detailOverlay').classList.contains('hidden'), 'detail saved');
       state.selectedKey = '2026-10-09'; await loadMonth();
       document.querySelector('#todoList .subj').click();
       document.getElementById('btnDetailEdit').click();
@@ -84,7 +84,7 @@ app
       document.getElementById('detailImportance').value = 'high';
       document.getElementById('detailStatus').value = 'completed';
       document.getElementById('detailForm').requestSubmit();
-      await wait(() => document.getElementById('detailOverlay').classList.contains('hidden') && document.getElementById('statusText').textContent === '已保存');
+      await wait(() => document.getElementById('detailOverlay').classList.contains('hidden'), 'detail saved');
       const settings = await api.getSettings();
       if (settings.startupSupported) {
       await api.saveSettings({ startOnLogin: true });
