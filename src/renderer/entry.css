@@ -1,0 +1,16 @@
+html, body { background: var(--surface); overflow: auto; user-select: text; }
+body { padding: 24px; }
+main { max-width: 720px; margin: auto; }
+h1 { font-size: 22px; margin-bottom: 8px; }
+.entry-source { color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+fieldset { border: 0; min-width: 0; }
+.field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.field > span { color: var(--muted); font-size: 13px; }
+.field input, .field select, .field textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--sidebar); }
+.field textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+input:disabled, select:disabled, textarea:disabled { opacity: 1; color: var(--text); -webkit-text-fill-color: var(--text); }
+.check-field { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; }
+.overlay-actions { position: sticky; bottom: -24px; display: flex; gap: 10px; justify-content: flex-end; padding: 16px 0 24px; background: var(--surface); border-top: 1px solid var(--line); }
+.overlay-actions button { padding: 9px 16px; border-radius: 8px; }
+.err { color: var(--danger); white-space: pre-wrap; margin-bottom: 16px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

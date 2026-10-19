@@ -122,10 +122,7 @@ function renderGrid() {
     .querySelectorAll(".day")
     .forEach((el) =>
       el.addEventListener("dblclick", () => {
-        $("addEventBar").classList.remove("hidden");
-        $("addEventStart").value = el.dataset.key + "T09:00";
-        $("addEventEnd").value = el.dataset.key + "T10:00";
-        $("addEventInput").focus();
+        openNewEntry('event', el.dataset.key);
       }),
     );
   $("grid")
@@ -366,65 +363,6 @@ async function handleToggleTask(taskId, localTaskId) {
   }
 }
 
-async function handleAddTodo() {
-  const input = $("todoInput");
-  const subject = input.value.trim();
-  if (!subject) return;
-
-  input.disabled = true;
-  try {
-    const dueDateEl = $("todoDueDate");
-    let due;
-    if (dueDateEl.value) {
-      due = `${dueDateEl.value}T23:59:00`;
-    } else {
-      due = `${state.selectedKey}T23:59:00`;
-    }
-
-    if (userSettings.defaultTaskTarget === "outlook") {
-      if (!state.todoListId)
-        throw new Error(
-          "请先连接 Microsoft To Do，或将新建任务保存位置改为本地",
-        );
-      const created = await api.todoCreate(state.todoListId, {
-        subject,
-        dueDateTime: { dateTime: due, timeZone: "UTC" },
-      });
-      const dueDate = dueDateEl.value || state.selectedKey;
-      const key = dueDate;
-      if (!state.tasks.has(key)) state.tasks.set(key, []);
-      state.tasks.get(key).push({
-        id: created.id,
-        subject,
-        status: "notStarted",
-        importance: "normal",
-        dueDateTime: { dateTime: due, timeZone: "UTC" },
-      });
-    } else {
-      const created = await api.localTaskAdd({
-        subject,
-        dueDateTime: due,
-      });
-      const dueDate = dueDateEl.value || state.selectedKey;
-      const key = dueDate;
-      if (!state.tasks.has(key)) state.tasks.set(key, []);
-      state.tasks.get(key).push(created);
-    }
-
-    input.value = "";
-    $("todoDueDate").value = "";
-    $("addTodoBar").classList.add("hidden");
-    renderGrid();
-    renderEvents();
-    renderTodoPanel();
-  } catch (err) {
-    setStatus("创建失败：" + err.message);
-  } finally {
-    input.disabled = false;
-    input.focus();
-  }
-}
-
 /* ---------------- 数据拉取 ---------------- */
 
 let loadSequence = 0;
@@ -631,272 +569,32 @@ function configureSyncTimer() {
     );
 }
 
-/* ---------------- Todo 面板交互 ---------------- */
-
+/* ---------------- 独立记录窗口 ---------------- */
+function openNewEntry(kind, date = state.selectedKey) {
+  api.openEntry({ kind, mode: 'create', date }).catch((error) => setStatus(error.message));
+}
+function openLocalDetail(kind, item) {
+  api.openEntry({ kind, mode: 'view', ...(item.local ? { id: item.id } : { item }) }).catch((error) => setStatus(error.message));
+}
 function setupTodoPanel() {
-  $("btnToggleDone").addEventListener("click", () => {
+  $('btnToggleDone').addEventListener('click', () => {
     state.showCompleted = !state.showCompleted;
-    $("btnToggleDone").classList.toggle("active", state.showCompleted);
+    $('btnToggleDone').classList.toggle('active', state.showCompleted);
     renderTodoPanel();
   });
-
-  $("btnAddTodo").addEventListener("click", () => {
-    $("addTodoBar").classList.toggle("hidden");
-    if (!$("addTodoBar").classList.contains("hidden")) {
-      $("todoInput").focus();
-    }
-  });
-
-  $("btnAddTodoCancel").addEventListener("click", () => {
-    $("addTodoBar").classList.add("hidden");
-    $("todoInput").value = "";
-  });
-
-  $("btnAddTodoConfirm").addEventListener("click", handleAddTodo);
-  $("todoInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleAddTodo();
-  });
+  $('btnAddTodo').addEventListener('click', () => openNewEntry('task'));
 }
-
-/* ---------------- 添加日程 ---------------- */
-
 function setupAddEvent() {
-  $("btnAddEvent").addEventListener("click", () => {
-    $("addEventBar").classList.toggle("hidden");
-    if (!$("addEventBar").classList.contains("hidden")) {
-      $("addEventInput").focus();
+  $('btnAddEvent').addEventListener('click', () => openNewEntry('event'));
+  api.onEntriesChanged(async ({ kind, item }) => {
+    const value = kind === 'event' ? item.start : item.dueDateTime?.dateTime || item.dueDateTime;
+    if (value) {
+      const date = new Date(value);
+      state.selectedKey = dateKey(date);
+      state.view = new Date(date.getFullYear(), date.getMonth(), state.calendarView === 'week' ? date.getDate() : 1);
     }
-  });
-
-  $("btnAddEventCancel").addEventListener("click", () => {
-    $("addEventBar").classList.add("hidden");
-    $("addEventInput").value = "";
-  });
-
-  $("btnAddEventConfirm").addEventListener("click", handleAddEvent);
-  $("addEventInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleAddEvent();
-  });
-}
-
-async function handleAddEvent() {
-  const input = $("addEventInput");
-  const subject = input.value.trim();
-  if (!subject) return;
-
-  const startEl = $("addEventStart");
-  const endEl = $("addEventEnd");
-  let start = startEl.value;
-  let end = endEl.value;
-
-  if (!start) {
-    const [y, m, d] = state.selectedKey.split("-").map(Number);
-    const pad = (n) => String(n).padStart(2, "0");
-    start = `${state.selectedKey}T09:00`;
-    end = `${state.selectedKey}T10:00`;
-  }
-
-  try {
-    await api.localEventAdd({
-      subject,
-      start: start
-        ? new Date(start).toISOString()
-        : new Date(start).toISOString(),
-      end: end ? new Date(end).toISOString() : new Date(start).toISOString(),
-      isAllDay: false,
-    });
-    input.value = "";
-    startEl.value = "";
-    endEl.value = "";
-    $("addEventBar").classList.add("hidden");
-    await loadMonth();
-  } catch (err) {
-    setStatus("添加失败：" + err.message);
-  }
-}
-
-/* ---------------- 本地详情与编辑 ---------------- */
-let detail = null;
-
-function localInputTime(value) {
-  const d = new Date(value);
-  if (!Number.isFinite(d.getTime())) return "";
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${dateKey(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function configureEventDateInputs() {
-  const allDay = $("detailAllDay").checked;
-  for (const id of ["detailStart", "detailEnd"]) {
-    const input = $(id);
-    const value = input.value;
-    input.type = allDay ? "date" : "datetime-local";
-    input.value = allDay
-      ? value.slice(0, 10)
-      : value.length === 10
-        ? `${value}T00:00`
-        : value;
-  }
-  $("detailEndLabel").textContent = allDay ? "结束日期（不包含当天）" : "结束";
-}
-
-function openLocalDetail(kind, item, trigger) {
-  detail = {
-    kind,
-    id: item.id,
-    trigger,
-    saving: false,
-    readonly: !item.local,
-    link: item.webLink,
-  };
-  const readonly = !item.local;
-  $("detailHeading").textContent = readonly
-    ? (item.sourceName || "外部日历") + " · 只读"
-    : kind === "event"
-      ? "本地日程详情"
-      : "本地任务详情";
-  $("detailSubject").value = item.subject || "";
-  $("detailNotes").value = item.notes || "";
-  const event = kind === "event";
-  $("detailEventFields").classList.toggle("hidden", !event);
-  $("detailTaskFields").classList.toggle("hidden", event);
-  $("detailStart").required = event;
-  $("detailEnd").required = event;
-  $("detailAllDay").checked = !!item.isAllDay;
-  $("detailStart").type = "datetime-local";
-  $("detailEnd").type = "datetime-local";
-  $("detailStart").value = event ? localInputTime(item.start) : "";
-  $("detailEnd").value = event ? localInputTime(item.end || item.start) : "";
-  $("detailLocation").value = item.location || "";
-  $("detailDue").value = item.dueDateTime
-    ? dateKey(new Date(item.dueDateTime.dateTime || item.dueDateTime))
-    : "";
-  $("detailImportance").value = item.importance || "normal";
-  $("detailStatus").value = item.status || "notStarted";
-  configureEventDateInputs();
-  $("detailFields").disabled = true;
-  $("detailError").classList.add("hidden");
-  $("btnDetailEdit").classList.toggle("hidden", readonly);
-  $("btnDetailSave").classList.add("hidden");
-  $("btnDetailSave").disabled = false;
-  $("btnDetailClose").textContent = "关闭";
-  $("btnDetailExternal").classList.toggle("hidden", !item.webLink);
-  $("detailOverlay").classList.remove("hidden");
-  $("detailOverlay").scrollTop = 0;
-  (readonly ? $("btnDetailClose") : $("btnDetailEdit")).focus();
-}
-
-function closeLocalDetail() {
-  if (detail?.saving) return;
-  const trigger = detail?.trigger;
-  detail = null;
-  $("detailOverlay").classList.add("hidden");
-  if (trigger?.isConnected) trigger.focus();
-}
-
-async function saveLocalDetail(e) {
-  e.preventDefault();
-  if (!detail || detail.saving || detail.readonly) return;
-  const subject = $("detailSubject").value.trim();
-  const notes = $("detailNotes").value;
-  try {
-    if (!subject) throw new Error("标题不能为空");
-    let patch;
-    let targetKey;
-    if (detail.kind === "event") {
-      const start = new Date(
-        $("detailStart").value + ($("detailAllDay").checked ? "T00:00:00" : ""),
-      );
-      const end = new Date(
-        $("detailEnd").value + ($("detailAllDay").checked ? "T00:00:00" : ""),
-      );
-      if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()))
-        throw new Error("请填写有效的开始和结束时间");
-      if (end < start || ($("detailAllDay").checked && end <= start))
-        throw new Error("结束时间不能早于开始时间，全天日程至少一天");
-      patch = {
-        subject,
-        notes,
-        start: start.toISOString(),
-        end: end.toISOString(),
-        isAllDay: $("detailAllDay").checked,
-        location: $("detailLocation").value.trim(),
-      };
-      targetKey = dateKey(start);
-    } else {
-      const due = $("detailDue").value;
-      patch = {
-        subject,
-        notes,
-        dueDateTime: due ? `${due}T23:59:00` : null,
-        importance: $("detailImportance").value,
-        status: $("detailStatus").value,
-      };
-      targetKey = due || dateKey(new Date());
-    }
-    detail.saving = true;
-    $("btnDetailSave").disabled = true;
-    const saved =
-      detail.kind === "event"
-        ? await api.localEventUpdate(detail.id, patch)
-        : await api.localTaskUpdate(detail.id, patch);
-    if (!saved) throw new Error("记录已被删除，请关闭详情后刷新");
-    state.selectedKey = targetKey;
-    const [y, m, d] = targetKey.split("-").map(Number);
-    state.view = new Date(y, m - 1, state.calendarView === "week" ? d : 1);
-    detail.saving = false;
-    closeLocalDetail();
-    await loadMonth();
-    setStatus("已保存");
-  } catch (err) {
-    $("detailError").textContent = err.message;
-    $("detailError").classList.remove("hidden");
-  } finally {
-    if (detail) detail.saving = false;
-    $("btnDetailSave").disabled = false;
-  }
-}
-
-function setupLocalDetail() {
-  $("btnDetailExternal").onclick = async () => {
-    try {
-      await api.openEventLink(detail.link);
-    } catch {
-      $("detailError").textContent = "无法打开原始日历链接";
-      $("detailError").classList.remove("hidden");
-    }
-  };
-  $("btnDetailClose").addEventListener("click", closeLocalDetail);
-  $("btnDetailEdit").addEventListener("click", () => {
-    $("detailFields").disabled = false;
-    $("btnDetailEdit").classList.add("hidden");
-    $("btnDetailSave").classList.remove("hidden");
-    $("btnDetailClose").textContent = "取消";
-    $("detailSubject").focus();
-  });
-  $("detailAllDay").addEventListener("change", configureEventDateInputs);
-  $("detailForm").addEventListener("submit", saveLocalDetail);
-  document.addEventListener("keydown", (e) => {
-    if (!detail) return;
-    if (e.key === "Escape") {
-      e.preventDefault();
-      closeLocalDetail();
-    }
-    if (e.key === "Tab") {
-      const controls = Array.from(
-        $("detailOverlay").querySelectorAll("button, input, select, textarea"),
-      ).filter((el) => !el.matches(":disabled") && el.getClientRects().length);
-      const first = controls[0],
-        last = controls[controls.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      }
-      if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
+    await loadMonth(true);
+    setStatus('已保存');
   });
 }
 
@@ -964,7 +662,6 @@ async function init() {
   setupNav();
   setupTodoPanel();
   setupAddEvent();
-  setupLocalDetail();
   setupResize();
   MouseInteraction.setup({ document, window, api });
   const s = await refreshAuth();

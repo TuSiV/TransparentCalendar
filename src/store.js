@@ -88,13 +88,13 @@ function getLocalTasks(startISO, endISO) {
   });
 }
 
-function addLocalTask({ subject, dueDateTime, notes }) {
+function addLocalTask({ subject, dueDateTime, notes, status = 'notStarted', importance = 'normal' }) {
   const all = readJSON('local-tasks.json');
   const task = {
     id: uid(),
     subject: subject || '(无标题)',
-    status: 'notStarted',
-    importance: 'normal',
+    status,
+    importance,
     dueDateTime: dueDateTime || null,
     notes: notes || '',
     local: true,
@@ -160,6 +160,8 @@ function deleteLocalTask(id) {
 }
 
 module.exports = {
+  getLocalEvent: (id) => readJSON('local-events.json').find((item) => item.id === id) || null,
+  getLocalTask: (id) => readJSON('local-tasks.json').find((item) => item.id === id) || null,
   getLocalEvents,
   addLocalEvent,
   deleteLocalEvent,

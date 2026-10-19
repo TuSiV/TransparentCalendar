@@ -21,6 +21,7 @@ const preferences = require("./preferences");
 const sources = require("./sources");
 const crypto = require("node:crypto");
 const { createClickThrough } = require("./click-through");
+const { setupEntryWindows } = require("./entry-windows");
 let settingsWin = null;
 let resizeTimer = null;
 let changingView = false;
@@ -71,6 +72,7 @@ function saveSettings(patch) {
   delete s.icsUrl;
   fs.mkdirSync(path.dirname(settingsPath()), { recursive: true });
   fs.writeFileSync(settingsPath(), JSON.stringify(s, null, 2));
+  entryWindows.broadcastSettings(s);
   for (const window of [win, settingsWin])
     if (window && !window.isDestroyed())
       window.webContents.send("settings:changed", s);
@@ -226,7 +228,8 @@ if (!gotLock) {
   });
 }
 
-app.on("before-quit", () => {
+app.on("before-quit", (event) => {
+  if (!entryWindows.requestQuit(event)) return;
   app.isQuitting = true;
   clearInterval(resizeTimer);
   globalShortcut.unregisterAll();
@@ -713,3 +716,21 @@ ipcMain.handle("local:task:update", (_e, id, patch) =>
 );
 ipcMain.handle("local:task:complete", (_e, id) => store.completeLocalTask(id));
 ipcMain.handle("local:task:delete", (_e, id) => store.deleteLocalTask(id));
+
+const entryWindows = setupEntryWindows({
+  getParent: () => win,
+  getSettings: loadSettings,
+  async createOutlookTask(values) {
+    const token = await getTodoToken();
+    const lists = await todo.getLists(token);
+    const list = lists.find((item) => item.wellknownName === 'tasks') || lists[0];
+    if (!list) throw new Error('请先在 Microsoft To Do 中创建任务列表');
+    return todo.createTask(token, list.id, {
+      subject: values.subject,
+      dueDateTime: values.dueDateTime ? { dateTime: new Date(values.dueDateTime).toISOString().replace(/Z$/, ''), timeZone: 'UTC' } : null,
+    });
+  },
+  changed(value) {
+    if (win && !win.isDestroyed()) win.webContents.send('entry:changed', value);
+  },
+});
